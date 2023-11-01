@@ -1,5 +1,5 @@
 # carbono
-Carbono is an open-source JavaScript library that provides a simple and easy-to-use interface for building and training neural networks. Designed with usability in mind, the library is perfect for those who are new to machine learning and want to get started without the steep learning curve.
+Carbono is an open-source JavaScript library that provides a simple and easy-to-use interface for building and training Feed-Forward neural networks. Designed with usability in mind, the library is perfect for those who are new to machine learning and want to get started without the steep learning curve.
 
 ### Key Features
 
