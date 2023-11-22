@@ -1,6 +1,6 @@
 ![carbono logo](https://raw.githubusercontent.com/appvoid/carbono/main/logo.jpeg)
 # carbono
-is an open-source JavaScript micro-library that provides a simple and easy-to-use interface for building and training Feed-Forward neural networks. Designed with usability in mind, the library is perfect for those who are new to machine learning and want to get started without the steep learning curve.
+is an open-source JavaScript micro-library that provides a simple and easy-to-use interface for building and training Feed-Forward neural networks all in less than 300 LoC. Designed with usability in mind, the library is perfect for those who are new to machine learning and want to get started without the steep learning curve.
 
 ### Key Features
 
