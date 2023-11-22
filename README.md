@@ -4,7 +4,7 @@ is an open-source JavaScript micro-library that provides a simple and easy-to-us
 
 ### Key Features
 
-- Lightweight: This is just javascript so is perfect to test on raspberry pi / low-powered devices.
+- Lightweight: This is just javascript so is perfect to test on raspberry pi / low-powered devices. If it has a browser, you can run it.
 
 - Activation Functions: The library supports various activation functions such as Tanh, Sigmoid, ReLU, and SELU, allowing for versatility in building neural network models.
 
