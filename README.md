@@ -20,17 +20,10 @@ The Carbono Neural Network library is a great starting point for those who want 
 
 ### Quick Usage
 ``` javascript
-const model = new carbono()
-
-const dataset = [
-  {input: [0], output: [1]},
-  {input: [1], output: [0]},
-]
-
-model.train(dataset)
-
-console.log(model.predict([0])) // should return a number near to [1]
-
+const nn = new carbono()
+const dataset = [{input: [0], output: [1]}, {input: [1], output: [0]}]
+nn.train(dataset)
+console.log(nn.predict([0])) // should return a number near to [1]
 ```
 
 <h2>Class: <code>carbono</code></h2>
