@@ -20,8 +20,8 @@ The Carbono Neural Network library is a great starting point for those who want 
 const model = new carbono()
 
 const dataset = [
-  {input: [0], output: [1},
-  {input: [1], output: [0},
+  {input: [0], output: [1]},
+  {input: [1], output: [0]},
 ]
 
 model.train(dataset)
