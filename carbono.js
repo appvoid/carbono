@@ -30,10 +30,10 @@ class carbono {
 
     this.weights.push(weights);
 
-  const biases = [];
-  for (let i = 0; i < outputSize; i++) {
-    biases.push(0.01); // Small positive bias
-  }
+    const biases = [];
+    for (let i = 0; i < outputSize; i++) {
+      biases.push(0.01); // Small positive bias
+    }
 
     this.biases.push(biases);
   }
