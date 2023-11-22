@@ -8,13 +8,13 @@ is an open-source JavaScript micro-library that provides a simple and easy-to-us
 
 - Activation Functions: The library supports various activation functions such as Tanh, Sigmoid, ReLU, and SELU, allowing for versatility in building neural network models.
 
-- Glorot Initialization: The library uses Glorot initialization for weight parameters to ensure proper scaling, which helps speed up training.
+- Glorot Initialization: It uses Glorot initialization for weight parameters to ensure proper scaling, which helps speed up training.
 
 - Easy-to-Use Interface: With a simple and intuitive API, users can easily define the structure of the neural network, add layers, and set training parameters.
 
-- Training and Prediction: The library supports training the neural network with a dataset and making predictions with the trained model.
+- Training and Prediction: It supports training the neural network with a dataset and making predictions with the trained model.
 
-- Save and Load: The library provides functionality to save the trained model to a file and load it back for future use, making it convenient for users to resume work.
+- Save and Load: It provides functionality to save (as json) the trained model and load it back for future use, making it convenient for users to resume work.
 
 The Carbono Neural Network library is a great starting point for those who want to explore machine learning and neural networks without being overwhelmed by complexity. With its straightforward API and user-friendly design, this library empowers users to build and experiment with neural networks in a flexible and accessible manner.
 
@@ -111,5 +111,4 @@ nn.save('my_model');
 nn.load(() => console.log('Model loaded successfully.'));
 ```
 
-  <p>Note: Ensure that the <code>trainingData</code> variable is properly formatted with <code>input</code> and <code>output</code> properties.</p>
-
+<p>Note: Ensure that the <code>trainingData</code> variable is properly formatted with <code>input</code> and <code>output</code> properties.</p>
