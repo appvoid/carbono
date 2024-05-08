@@ -1,6 +1,6 @@
 // Neural network --------------------------------------------------------------------------
 class carbono {
-  constructor(activation = 'tanh', debug=true) {
+  constructor(activation = 'tanh', debug = true) {
     this.activation = activation;
     this.layers = [];
     this.weights = [];
@@ -13,9 +13,12 @@ class carbono {
     this.layers.push({ inputSize, outputSize });
 
     if (this.weights.length > 0) {
-      const lastLayerOutputSize = this.layers[this.layers.length - 2].outputSize;
+      const lastLayerOutputSize =
+        this.layers[this.layers.length - 2].outputSize;
       if (inputSize !== lastLayerOutputSize) {
-        throw new Error('Input size of the new layer must match the output size of the previous layer.');
+        throw new Error(
+          'Input size of the new layer must match the output size of the previous layer.'
+        );
       }
     }
 
@@ -23,7 +26,9 @@ class carbono {
     for (let i = 0; i < outputSize; i++) {
       const row = [];
       for (let j = 0; j < inputSize; j++) {
-        row.push((Math.random() - 0.5) * 2 * Math.sqrt(6 / (inputSize + outputSize))); // Glorot initialization
+        row.push(
+          (Math.random() - 0.5) * 2 * Math.sqrt(6 / (inputSize + outputSize))
+        ); // Glorot initialization
       }
       weights.push(row);
     }
@@ -74,20 +79,24 @@ class carbono {
     }
   }
 
-
-  train(dataset, epochs = 200, learningRate = 0.212, batchSize = 16, printEveryEpochs = 100) {
+  train(
+    dataset,
+    epochs = 200,
+    learningRate = 0.212,
+    batchSize = 16,
+    printEveryEpochs = 100
+  ) {
     // Timer start
     const start = Date.now();
 
     // To avoid loop errors
-    if (batchSize < 1)
-      batchSize = 2
+    if (batchSize < 1) batchSize = 2;
 
     // Automatically initialize layers if not already set
     if (this.layers.length === 0) {
       const numInputs = dataset[0].input.length;
-      this.layer(numInputs, numInputs);  // hidden layer with 2 units
-      this.layer(numInputs, 1);  // output layer with 1 unit
+      this.layer(numInputs, numInputs); // hidden layer with 2 units
+      this.layer(numInputs, 1); // output layer with 1 unit
     }
 
     let lastEpochLoss = 0;
@@ -138,7 +147,9 @@ class carbono {
               for (let k = 0; k < this.layers[i + 1].outputSize; k++) {
                 error += nextLayerErrors[k] * nextLayerWeights[k][j];
               }
-              errors.push(error * this.activationDerivative(currentLayerInputs[j]));
+              errors.push(
+                error * this.activationDerivative(currentLayerInputs[j])
+              );
             }
             layerErrors.unshift(errors);
           }
@@ -163,7 +174,7 @@ class carbono {
         }
 
         // Update learning rate
-        learningRate = Math.max(0.01, learningRate * 0.999);
+        // learningRate = Math.max(0.01, learningRate * 0.999);
         epochError += batchError;
         lastEpochLoss = batchError;
       }
@@ -191,9 +202,9 @@ class carbono {
       training: {
         time: end - start,
         activation: this.activation,
-        epochs,  // Added number of epochs
-        learningRate,  // Added learning rate
-        batchSize  // Added batch size
+        epochs, // Added number of epochs
+        learningRate, // Added learning rate
+        batchSize, // Added batch size
       },
     };
 
@@ -219,11 +230,11 @@ class carbono {
     return layerInput;
   }
 
-  save(name='model') {
+  save(name = 'model') {
     const data = {
       weights: this.weights,
       biases: this.biases,
-      details: this.details
+      details: this.details,
     };
     const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -237,12 +248,12 @@ class carbono {
   }
 
   load(callback) {
-    const handleListener = (event) => {
+    const handleListener = event => {
       const file = event.target.files[0];
       if (!file) return;
 
       const reader = new FileReader();
-      reader.onload = (event) => {
+      reader.onload = event => {
         const text = event.target.result;
         try {
           const data = JSON.parse(text);
@@ -256,15 +267,13 @@ class carbono {
           }
 
           callback();
-          if (this.debug === true)
-            console.log('Model loaded successfully.');
+          if (this.debug === true) console.log('Model loaded successfully.');
           input.removeEventListener('change', handleListener);
           input.remove();
         } catch (e) {
           input.removeEventListener('change', handleListener);
           input.remove();
-          if (this.debug === true)
-            console.error('Failed to load model:', e);
+          if (this.debug === true) console.error('Failed to load model:', e);
         }
       };
       reader.readAsText(file);
@@ -273,7 +282,7 @@ class carbono {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '.json';
-    input.style.opacity = "0";
+    input.style.opacity = '0';
     document.body.append(input);
     input.addEventListener('change', handleListener.bind(this));
     input.click();
