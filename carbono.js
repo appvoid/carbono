@@ -13,8 +13,8 @@ class carbono {
     this.layers.push({ inputSize, outputSize });
 
     if (this.weights.length > 0) {
-      const lastLayerOutputSize =
-        this.layers[this.layers.length - 2].outputSize;
+      const lastLayerOutputSize = this.layers[this.layers.length - 2]
+        .outputSize;
       if (inputSize !== lastLayerOutputSize) {
         throw new Error(
           'Input size of the new layer must match the output size of the previous layer.'
@@ -27,7 +27,9 @@ class carbono {
       const row = [];
       for (let j = 0; j < inputSize; j++) {
         row.push(
-          (Math.random() - 0.5) * 2 * Math.sqrt(6 / (inputSize + outputSize))
+          (Math.random() - 0.5) *
+            2 *
+            Math.sqrt(6 / (inputSize + outputSize))
         ); // Glorot initialization
       }
       weights.push(row);
@@ -79,13 +81,15 @@ class carbono {
     }
   }
 
-  train(
-    dataset,
-    epochs = 200,
-    learningRate = 0.212,
-    batchSize = 16,
-    printEveryEpochs = 100
-  ) {
+  train(dataset, options = {}) {
+    const {
+      epochs = 200,
+      learningRate = 0.212,
+      batchSize = 16,
+      printEveryEpochs = 100,
+      earlyStopThreshold = 1e-6
+    } = options;
+
     // Timer start
     const start = Date.now();
 
@@ -128,7 +132,8 @@ class carbono {
           }
 
           const outputLayerIndex = this.weights.length - 1;
-          const outputLayerInputs = layerInputs[layerInputs.length - 1];
+          const outputLayerInputs =
+            layerInputs[layerInputs.length - 1];
           const outputErrors = [];
           for (let i = 0; i < outputLayerInputs.length; i++) {
             const error = data.output[i] - outputLayerInputs[i];
@@ -144,11 +149,16 @@ class carbono {
             const errors = [];
             for (let j = 0; j < this.layers[i].outputSize; j++) {
               let error = 0;
-              for (let k = 0; k < this.layers[i + 1].outputSize; k++) {
+              for (
+                let k = 0;
+                k < this.layers[i + 1].outputSize;
+                k++
+              ) {
                 error += nextLayerErrors[k] * nextLayerWeights[k][j];
               }
               errors.push(
-                error * this.activationDerivative(currentLayerInputs[j])
+                error *
+                  this.activationDerivative(currentLayerInputs[j])
               );
             }
             layerErrors.unshift(errors);
@@ -173,14 +183,23 @@ class carbono {
           batchError += Math.abs(outputErrors[0]); // Assuming binary output
         }
 
-        // Update learning rate
-        // learningRate = Math.max(0.01, learningRate * 0.999);
         epochError += batchError;
         lastEpochLoss = batchError;
       }
 
-      if ((epoch + 1) % printEveryEpochs === 0 && this.debug === true) {
-        console.log(`Epoch ${epoch + 1}, Error: ${epochError}`);
+      if (
+        (epoch + 1) % printEveryEpochs === 0 &&
+        this.debug === true
+      ) {
+        console.log(`epoch ${epoch + 1}, loss: ${epochError}`);
+      }
+
+      // Check for small loss values for early stopping
+      if (epochError < earlyStopThreshold) {
+        console.log(
+          `stopped at epoch ${epoch + 1} with loss: ${epochError}`
+        );
+        break;
       }
     }
 
@@ -202,14 +221,15 @@ class carbono {
       training: {
         time: end - start,
         activation: this.activation,
-        epochs, // Added number of epochs
-        learningRate, // Added learning rate
-        batchSize, // Added batch size
-      },
+        epochs,
+        learningRate,
+        batchSize
+      }
     };
 
     this.details = trainingSummary;
   }
+
   predict(input) {
     let layerInput = input;
     for (let i = 0; i < this.weights.length; i++) {
@@ -234,9 +254,11 @@ class carbono {
     const data = {
       weights: this.weights,
       biases: this.biases,
-      details: this.details,
+      details: this.details
     };
-    const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(data)], {
+      type: 'application/json'
+    });
     const url = URL.createObjectURL(blob);
 
     const a = document.createElement('a');
@@ -248,12 +270,12 @@ class carbono {
   }
 
   load(callback) {
-    const handleListener = event => {
+    const handleListener = (event) => {
       const file = event.target.files[0];
       if (!file) return;
 
       const reader = new FileReader();
-      reader.onload = event => {
+      reader.onload = (event) => {
         const text = event.target.result;
         try {
           const data = JSON.parse(text);
@@ -267,13 +289,15 @@ class carbono {
           }
 
           callback();
-          if (this.debug === true) console.log('Model loaded successfully.');
+          if (this.debug === true)
+            console.log('Model loaded successfully.');
           input.removeEventListener('change', handleListener);
           input.remove();
         } catch (e) {
           input.removeEventListener('change', handleListener);
           input.remove();
-          if (this.debug === true) console.error('Failed to load model:', e);
+          if (this.debug === true)
+            console.error('Failed to load model:', e);
         }
       };
       reader.readAsText(file);
