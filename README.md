@@ -105,3 +105,43 @@ nn.load(() => console.log('Model loaded successfully.'));
 ```
 
 <p>Note: Ensure that the <code>trainingData</code> variable is properly formatted with <code>input</code> and <code>output</code> properties.</p>
+
+  <h2>Advanced Usage</h2>
+
+``` javascript
+// Create a new neural network instance
+const nn = new carbono('relu', true);
+
+// Add layers to the network
+nn.layer(2, 4); // Input layer with 2 inputs and 4 hidden units
+nn.layer(4, 1); // Hidden layer with 4 inputs and 1 output unit
+
+// Define a dataset for training
+const dataset = [
+  { input: [0, 0], output: [0] },
+  { input: [0, 1], output: [1] },
+  { input: [1, 0], output: [1] },
+  { input: [1, 1], output: [0] }
+];
+
+// Train the network
+nn.train(dataset, { epochs: 1000, learningRate: 0.1, batchSize: 2 });
+
+// Make predictions
+console.log(nn.predict([0, 0])); // Expected output: [0]
+console.log(nn.predict([0, 1])); // Expected output: [1]
+console.log(nn.predict([1, 0])); // Expected output: [1]
+console.log(nn.predict([1, 1])); // Expected output: [0]
+
+// Save the model
+nn.save('xor_model');
+
+// Load the model
+nn.load(() => {
+  console.log('Model loaded!');
+  console.log(nn.predict([0, 0])); // Expected output: [0]
+  console.log(nn.predict([0, 1])); // Expected output: [1]
+  console.log(nn.predict([1, 0])); // Expected output: [1]
+  console.log(nn.predict([1, 1])); // Expected output: [0]
+});
+```
