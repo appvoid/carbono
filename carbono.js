@@ -1,70 +1,69 @@
-// Neural network --------------------------------------------------------------------------
+// 🧠 carbono: A Fun and Friendly Neural Network Class 🧠
+// This micro-library wraps everything you need to have
+// This is the simplest yet functional feedforward mlp in js
 class carbono {
-  constructor(activation = 'tanh', debug = true) {
-    this.activation = activation;
-    this.layers = [];
-    this.weights = [];
-    this.biases = [];
-    this.details = {};
-    this.debug = debug;
+  constructor(debug = true) {
+    this.layers = [];        // 📚 Stores info about each layer
+    this.weights = [];       // ⚖️ Stores weights for each layer
+    this.biases = [];        // 🔧 Stores biases for each layer
+    this.activations = [];   // 🚀 Stores activation functions for each layer
+    this.details = {};       // 📊 Stores details about the model
+    this.debug = debug;      // 🐛 Enables or disables debug messages
   }
 
-  layer(inputSize, outputSize) {
-    this.layers.push({ inputSize, outputSize });
+  // 🏗️ Add a new layer to the neural network
+  layer(inputSize, outputSize, activation = 'tanh') {
+    // 🧱 Store layer information
+    this.layers.push({ inputSize, outputSize, activation });
 
+    // 🔍 Check if the new layer's input size matches the previous layer's output size
     if (this.weights.length > 0) {
-      const lastLayerOutputSize = this.layers[this.layers.length - 2]
-        .outputSize;
+      const lastLayerOutputSize = this.layers[this.layers.length - 2].outputSize;
       if (inputSize !== lastLayerOutputSize) {
-        throw new Error(
-          'Input size of the new layer must match the output size of the previous layer.'
-        );
+        throw new Error('Oops! The input size of the new layer must match the output size of the previous layer.');
       }
     }
 
+    // 🎲 Initialize weights using Xavier/Glorot initialization
     const weights = [];
     for (let i = 0; i < outputSize; i++) {
       const row = [];
       for (let j = 0; j < inputSize; j++) {
-        row.push(
-          (Math.random() - 0.5) *
-            2 *
-            Math.sqrt(6 / (inputSize + outputSize))
-        ); // Glorot initialization
+        row.push((Math.random() - 0.5) * 2 * Math.sqrt(6 / (inputSize + outputSize)));
       }
       weights.push(row);
     }
-
     this.weights.push(weights);
 
-    const biases = [];
-    for (let i = 0; i < outputSize; i++) {
-      biases.push(0.01); // Small positive bias
-    }
-
+    // 🎚️ Initialize biases with small positive values
+    const biases = Array(outputSize).fill(0.01);
     this.biases.push(biases);
+
+    // 🚀 Store the activation function for this layer
+    this.activations.push(activation);
   }
 
-  activationFunction(x) {
-    switch (this.activation) {
+  // 🧮 Apply the activation function
+  activationFunction(x, activation) {
+    switch (activation) {
       case 'tanh':
-        return Math.tanh(x);
+        return Math.tanh(x);  // 〰️ Hyperbolic tangent
       case 'sigmoid':
-        const sigmoid = 1 / (1 + Math.exp(-x));
-        return sigmoid;
+        return 1 / (1 + Math.exp(-x));  // 📈 S-shaped curve
       case 'relu':
-        return Math.max(0, x);
+        return Math.max(0, x);  // 📐 Rectified Linear Unit
       case 'selu':
         const alpha = 1.67326;
         const scale = 1.0507;
-        return x > 0 ? scale * x : scale * alpha * (Math.exp(x) - 1);
+        return x > 0 ? scale * x : scale * alpha * (Math.exp(x) - 1);  // 🚀 Scaled Exponential Linear Unit
       default:
-        throw new Error('Unsupported activation function.');
+        throw new Error('Whoops! We don\'t know that activation function.');
     }
   }
 
-  activationDerivative(x) {
-    switch (this.activation) {
+  // 📐 Calculate the derivative of the activation function
+  activationDerivative(x, activation) {
+    switch (activation) {
       case 'tanh':
         return 1 - Math.pow(Math.tanh(x), 2);
       case 'sigmoid':
@@ -77,47 +76,55 @@ class carbono {
         const scale = 1.0507;
         return x > 0 ? scale : scale * alpha * Math.exp(x);
       default:
-        throw new Error('Unsupported activation function.');
+        throw new Error('Oops! We don\'t know the derivative of that activation function.');
     }
   }
 
-  train(dataset, options = {}) {
+  // 🏋️‍♀️ Train the neural network
+  train(trainSet, options = {}) {
+    // 🎛️ Set up training options with default values
     const {
-      epochs = 200,
-      learningRate = 0.212,
-      batchSize = 16,
-      printEveryEpochs = 100,
-      earlyStopThreshold = 1e-6
+      epochs = 200,           // 🔄 Number of times to go through the entire dataset
+      learningRate = 0.212,   // 📏 How big of steps to take when adjusting weights
+      batchSize = 16,         // 📦 Number of samples to process before updating weights
+      printEveryEpochs = 100, // 🖨️ How often to print progress
+      earlyStopThreshold = 1e-6,  // 🛑 When to stop if the error is small enough
+      testSet = null          // 🧪 Optional test set for evaluation
     } = options;
 
-    // Timer start
-    const start = Date.now();
+    const start = Date.now();  // ⏱️ Start the timer
 
-    // To avoid loop errors
+    // 🛡️ Make sure batch size is at least 2
     if (batchSize < 1) batchSize = 2;
 
-    // Automatically initialize layers if not already set
+    // 🏗️ Automatically create layers if none exist
     if (this.layers.length === 0) {
-      const numInputs = dataset[0].input.length;
-      this.layer(numInputs, numInputs); // hidden layer with 2 units
-      this.layer(numInputs, 1); // output layer with 1 unit
+      const numInputs = trainSet[0].input.length;
+      this.layer(numInputs, numInputs, 'tanh');
+      this.layer(numInputs, 1, 'tanh');
     }
 
-    let lastEpochLoss = 0;
+    let lastTrainLoss = 0;
+    let lastTestLoss = null;
 
+    // 🔄 Main training loop
     for (let epoch = 0; epoch < epochs; epoch++) {
-      let epochError = 0;
+      let trainError = 0;
 
-      for (let b = 0; b < dataset.length; b += batchSize) {
-        const batch = dataset.slice(b, b + batchSize);
+      // 📦 Process data in batches
+      for (let b = 0; b < trainSet.length; b += batchSize) {
+        const batch = trainSet.slice(b, b + batchSize);
         let batchError = 0;
 
+        // 🧠 Forward pass and backward pass for each item in the batch
         for (const data of batch) {
+          // 🏃‍♂️ Forward pass
           const layerInputs = [data.input];
           for (let i = 0; i < this.weights.length; i++) {
             const inputs = layerInputs[i];
             const weights = this.weights[i];
             const biases = this.biases[i];
+            const activation = this.activations[i];
 
             const outputs = [];
             for (let j = 0; j < weights.length; j++) {
@@ -126,14 +133,14 @@ class carbono {
               for (let k = 0; k < inputs.length; k++) {
                 sum += inputs[k] * weight[k];
               }
-              outputs.push(this.activationFunction(sum));
+              outputs.push(this.activationFunction(sum, activation));
             }
             layerInputs.push(outputs);
           }
 
+          // 🔙 Backward pass
           const outputLayerIndex = this.weights.length - 1;
-          const outputLayerInputs =
-            layerInputs[layerInputs.length - 1];
+          const outputLayerInputs = layerInputs[layerInputs.length - 1];
           const outputErrors = [];
           for (let i = 0; i < outputLayerInputs.length; i++) {
             const error = data.output[i] - outputLayerInputs[i];
@@ -145,28 +152,22 @@ class carbono {
             const nextLayerWeights = this.weights[i + 1];
             const nextLayerErrors = layerErrors[0];
             const currentLayerInputs = layerInputs[i + 1];
+            const currentActivation = this.activations[i];
 
             const errors = [];
             for (let j = 0; j < this.layers[i].outputSize; j++) {
               let error = 0;
-              for (
-                let k = 0;
-                k < this.layers[i + 1].outputSize;
-                k++
-              ) {
+              for (let k = 0; k < this.layers[i + 1].outputSize; k++) {
                 error += nextLayerErrors[k] * nextLayerWeights[k][j];
               }
-              errors.push(
-                error *
-                  this.activationDerivative(currentLayerInputs[j])
-              );
+              errors.push(error * this.activationDerivative(currentLayerInputs[j], currentActivation));
             }
             layerErrors.unshift(errors);
           }
 
+          // 🔧 Update weights and biases
           for (let i = 0; i < this.weights.length; i++) {
             const inputs = layerInputs[i];
-            const outputs = layerInputs[i + 1];
             const errors = layerErrors[i];
             const weights = this.weights[i];
             const biases = this.biases[i];
@@ -183,30 +184,36 @@ class carbono {
           batchError += Math.abs(outputErrors[0]); // Assuming binary output
         }
 
-        epochError += batchError;
-        lastEpochLoss = batchError;
+        trainError += batchError;
       }
 
-      if (
-        (epoch + 1) % printEveryEpochs === 0 &&
-        this.debug === true
-      ) {
-        console.log(`epoch ${epoch + 1}, loss: ${epochError}`);
+      lastTrainLoss = trainError / trainSet.length;
+
+      // 🧪 Evaluate on test set if provided
+      if (testSet) {
+        let testError = 0;
+        for (const data of testSet) {
+          const prediction = this.predict(data.input);
+          testError += Math.abs(data.output[0] - prediction[0]);
+        }
+        lastTestLoss = testError / testSet.length;
       }
 
-      // Check for small loss values for early stopping
-      if (epochError < earlyStopThreshold) {
-        console.log(
-          `stopped at epoch ${epoch + 1} with loss: ${epochError}`
-        );
+      // 📢 Print progress if needed
+      if ((epoch + 1) % printEveryEpochs === 0 && this.debug === true) {
+        console.log(`Epoch ${epoch + 1}, Train Loss: ${lastTrainLoss.toFixed(6)}${testSet ? `, Test Loss: ${lastTestLoss.toFixed(6)}` : ''}`);
+      }
+
+      // 🛑 Check for early stopping
+      if (lastTrainLoss < earlyStopThreshold) {
+        console.log(`We stopped at epoch ${epoch + 1} with train loss: ${lastTrainLoss.toFixed(6)}${testSet ? ` and test loss: ${lastTestLoss.toFixed(6)}` : ''}`);
         break;
       }
     }
 
-    // Timer end
-    const end = Date.now();
+    const end = Date.now();  // ⏱️ Stop the timer
 
-    // Calculate total number of parameters
+    // 🧮 Calculate total number of parameters
     let totalParams = 0;
     for (let i = 0; i < this.weights.length; i++) {
       const weightLayer = this.weights[i];
@@ -214,27 +221,34 @@ class carbono {
       totalParams += weightLayer.flat().length + biasLayer.length;
     }
 
-    // Construct the training summary
+    // 📊 Create a summary of the training
     const trainingSummary = {
-      loss: lastEpochLoss,
+      trainLoss: lastTrainLoss,
+      testLoss: lastTestLoss,
       parameters: totalParams,
       training: {
         time: end - start,
-        activation: this.activation,
         epochs,
         learningRate,
         batchSize
-      }
+      },
+      layers: this.layers.map(layer => ({
+        inputSize: layer.inputSize,
+        outputSize: layer.outputSize,
+        activation: layer.activation
+      }))
     };
 
     this.details = trainingSummary;
   }
 
+  // 🔮 Use the trained network to make predictions
   predict(input) {
     let layerInput = input;
     for (let i = 0; i < this.weights.length; i++) {
       const weights = this.weights[i];
       const biases = this.biases[i];
+      const activation = this.activations[i];
 
       const layerOutput = [];
       for (let j = 0; j < weights.length; j++) {
@@ -243,22 +257,23 @@ class carbono {
         for (let k = 0; k < layerInput.length; k++) {
           sum += layerInput[k] * weight[k];
         }
-        layerOutput.push(this.activationFunction(sum));
+        layerOutput.push(this.activationFunction(sum, activation));
       }
       layerInput = layerOutput;
     }
     return layerInput;
   }
 
+  // 💾 Save the model to a file
   save(name = 'model') {
     const data = {
       weights: this.weights,
       biases: this.biases,
+      activations: this.activations,
+      layers: this.layers,
       details: this.details
     };
-    const blob = new Blob([JSON.stringify(data)], {
-      type: 'application/json'
-    });
+    const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
 
     const a = document.createElement('a');
@@ -269,6 +284,7 @@ class carbono {
     URL.revokeObjectURL(url);
   }
 
+  // 📂 Load a saved model from a file
   load(callback) {
     const handleListener = (event) => {
       const file = event.target.files[0];
@@ -281,23 +297,18 @@ class carbono {
           const data = JSON.parse(text);
           this.weights = data.weights;
           this.biases = data.biases;
+          this.activations = data.activations;
+          this.layers = data.layers;
           this.details = data.details;
 
-          // Set the activation function from the original implementation
-          if (this.details.activation) {
-            this.activation = this.details.activation;
-          }
-
           callback();
-          if (this.debug === true)
-            console.log('Model loaded successfully.');
+          if (this.debug === true) console.log('Model loaded successfully!');
           input.removeEventListener('change', handleListener);
           input.remove();
         } catch (e) {
           input.removeEventListener('change', handleListener);
           input.remove();
-          if (this.debug === true)
-            console.error('Failed to load model:', e);
+          if (this.debug === true) console.error('Failed to load model:', e);
         }
       };
       reader.readAsText(file);
