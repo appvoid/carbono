@@ -225,21 +225,30 @@
       // 🔮 Use the trained network to make predictions
       predict(input) {
         let layerInput = input;
+        const allActivations = [input]; // Track all activations through layers
+        const allRawValues = []; // Track pre-activation values
         for (let i = 0; i < this.weights.length; i++) {
           const weights = this.weights[i];
           const biases = this.biases[i];
           const activation = this.activations[i];
           const layerOutput = [];
+          const rawValues = [];
           for (let j = 0; j < weights.length; j++) {
             const weight = weights[j];
             let sum = biases[j];
             for (let k = 0; k < layerInput.length; k++) {
               sum += layerInput[k] * weight[k];
             }
+            rawValues.push(sum);
             layerOutput.push(this.activationFunction(sum, activation));
           }
+          allRawValues.push(rawValues);
+          allActivations.push(layerOutput);
           layerInput = layerOutput;
         }
+        // Store last activation values for visualization
+        this.lastActivations = allActivations;
+        this.lastRawValues = allRawValues;
         return layerInput;
       }
       // 💾 Save the model to a file
