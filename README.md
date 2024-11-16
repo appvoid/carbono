@@ -99,15 +99,13 @@ nn.load(callback);
 ## Example Usage
 
 ```javascript
-// Create a neural network
+// Create a neural network and add layers to it
 const nn = new carbono();
-
-// Add layers to the neural network
 nn.layer(2, 4, 'relu');
 nn.layer(4, 1, 'sigmoid');
 
 // Prepare training data
-const trainingData = [
+const dataset = [
   { input: [0, 0], output: [0] },
   { input: [0, 1], output: [1] },
   { input: [1, 0], output: [1] },
@@ -115,16 +113,9 @@ const trainingData = [
 ];
 
 // Train the neural network
-nn.train(trainingData, {
-  epochs: 1000,
-  learningRate: 0.1,
-  batchSize: 4,
-  printEveryEpochs: 100
-});
+nn.train(dataset, { epochs: 100, learningRate: 0.1, printEveryEpochs: 10 });
 
 // Make predictions
-console.log(nn.predict([0, 0])); // Expected output close to [0]
-console.log(nn.predict([0, 1])); // Expected output close to [1]
 console.log(nn.predict([1, 0])); // Expected output close to [1]
 console.log(nn.predict([1, 1])); // Expected output close to [0]
 
