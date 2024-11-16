@@ -96,7 +96,7 @@ nn.load(callback);
 
 - `callback`: A callback function to be executed after the model is loaded.
 
-## Example Usage
+## Basic example
 
 ```javascript
 // Create a neural network and add layers to it
