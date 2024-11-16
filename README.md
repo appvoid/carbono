@@ -153,7 +153,7 @@ const labels = [
   'thinking', 'blank', 'annoyed', 'eyeroll', 'smirk', 'sweat', 
   'cry', 'angry', 'rage', 'pleading', 'shock', 'sleepy', 'mask', 
   'sick', 'nauseous', 'vomit', 'dizzy', 'exploding_head', 'cowboy', 
-  'money', 'devil', 'evil_smile', 'clown', 'ghost', 'skull'
+  'lust', 'devil', 'evil', 'clown', 'ghost', 'skull'
 ];
 
 
