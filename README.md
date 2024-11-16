@@ -139,3 +139,71 @@ nn.load(() => {
 ```
 
 Note: Ensure that you're running this in an environment where file operations are supported (e.g., a web browser) for the save and load functionality to work properly.
+
+## Advanced example
+
+```javascript
+function emojiToBinary(emoji) {
+  return Array.from(emoji)
+    .map(char => char.codePointAt(0).toString(2).padStart(16, '0'))
+    .join('');
+}
+
+const emojis = [
+  '😀', '😊', '😂', '😅', '🤣', '😇', '😉', '😍', '😘', '😜', 
+  '😎', '🤩', '🥳', '🤔', '😑', '😒', '🙄', '😏', '😓', '😭', 
+  '😡', '🤬', '🥺', '😱', '😴', '😷', '🤒', '🤢', '🤮', '😵', 
+  '🤯', '🤠', '🤑', '😈', '👿', '🤡', '👻', '💀',
+];
+
+const labels = [
+  'smile', 'joy', 'laugh', 'nervous', 'rofl', 'angel', 'wink', 
+  'love', 'kiss', 'playful', 'cool', 'starstruck', 'celebrate', 
+  'thinking', 'blank', 'annoyed', 'eyeroll', 'smirk', 'sweat', 
+  'cry', 'angry', 'rage', 'pleading', 'shock', 'sleepy', 'mask', 
+  'sick', 'nauseous', 'vomit', 'dizzy', 'exploding_head', 'cowboy', 
+  'money', 'devil', 'evil_smile', 'clown', 'ghost', 'skull'
+];
+
+
+const emojiClasses = emojis.map((emoji, index) => ({
+  emoji,
+  binary: emojiToBinary(emoji),
+  label: labels[index]
+}));
+
+const trainSet = emojiClasses.map(item => ({
+  input: item.binary.split('').map(bit => parseInt(bit)),
+  output: Array(labels.length).fill(0).map((_, i) => labels[i] === item.label ? 1 : 0)
+}));
+
+const nn = new carbono(true);
+
+// Input layer
+const binaryLength = emojiToBinary(emojis[0]).length;
+nn.layer(binaryLength, 10, "relu"); // 16 bits for each emoji, 10 neurons in the hidden layer
+
+// Output layer with softmax activation
+nn.layer(10, labels.length, "softmax"); // output classes
+
+nn.train(trainSet, {
+  epochs: 100,
+  learningRate: 0.1,
+  batchSize: 8,
+  printEveryEpochs: 25,
+  earlyStopThreshold: 1e-5,
+}).then((summary) => {
+
+  const newEmoji = '😎';
+  const newInput = emojiToBinary(newEmoji).split('').map(bit => parseInt(bit));
+  const prediction = nn.predict(newInput);
+
+  console.log("Prediction:", prediction);
+
+  // Convert softmax output to class label
+  const predictedClass = prediction.indexOf(Math.max(...prediction));
+  const predictedLabel = labels[predictedClass];
+  console.log("Predicted Label:", predictedLabel);
+  console.log("Predicted Emoji:", emojis[labels.indexOf(predictedLabel)]);
+});
+```
