@@ -1,7 +1,5 @@
 # carbono
 
-<img src="https://raw.githubusercontent.com/appvoid/carbono/main/dot.png" width="256px" height="256px"/>
-
 carbono is a micro-library that provides a simple and easy-to-use interface for building and training Feed-Forward neural networks all in just ~500 lines of code.
 
 #### Features
