@@ -139,3 +139,126 @@ nn.train(trainSet, {
   console.log("Predicted Emoji:", emojis[labels.indexOf(predictedLabel)]);
 });
 ```
+
+## Dummy image recognition
+
+```javascript
+// First, let's create a function to load and process images
+function loadAndProcessImage(url) {
+    // Create a canvas to process the image
+    const img = new Image();
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    return new Promise((resolve, reject) => {
+        img.crossOrigin = "Anonymous";  // Handle CORS issues
+        
+        img.onload = () => {
+            // Resize image to a standard size (e.g., 64x64)
+            canvas.width = 64;
+            canvas.height = 64;
+            
+            // Draw and resize image
+            ctx.drawImage(img, 0, 0, 64, 64);
+            
+            // Get image data and normalize it
+            const imageData = ctx.getImageData(0, 0, 64, 64).data;
+            
+            // Convert to 128-length array
+            const processed = new Array(128).fill(0);
+            
+            // Simple processing: take average of RGB values for each pixel
+            for (let i = 0; i < imageData.length; i += 4) {
+                const pos = Math.floor(i / 4) % 128;
+                const avg = (imageData[i] + imageData[i + 1] + imageData[i + 2]) / 765; // Normalize to 0-1
+                processed[pos] = avg;
+            }
+            
+            resolve(processed);
+        };
+        
+        img.onerror = reject;
+        img.src = url;
+    });
+}
+
+// Neural network setup using carbono
+const nn = new carbono();
+nn.layer(128, 64, 'tanh');  // Input layer
+nn.layer(64, 32, 'tanh');   // Hidden layer
+nn.layer(32, 2, 'softmax'); // Output layer for 2 categories (cat/dog)
+
+// Array of image URLs
+const imageUrls = [
+    'https://cdn.pixabay.com/photo/2015/11/17/13/13/bulldog-1047518_1280.jpg',
+    'https://cdn.pixabay.com/photo/2018/03/31/06/31/dog-3277416_1280.jpg',
+    'https://cdn.pixabay.com/photo/2024/02/17/00/18/cat-8578562_1280.jpg',
+    'https://cdn.pixabay.com/photo/2024/01/29/20/40/cat-8540772_1280.jpg'
+];
+
+// Labels corresponding to the images (one-hot encoded)
+const labels = [
+    'dog', // dog
+    'dog', // dog
+    'cat', // cat
+    'cat'  // cat
+];
+
+// Process all images and prepare training data
+async function prepareTrainingData() {
+    const trainData = [];
+    
+    for (let i = 0; i < imageUrls.length; i++) {
+        try {
+            const processed = await loadAndProcessImage(imageUrls[i]);
+            trainData.push({
+                input: processed,
+                output: labels[i]
+            });
+        } catch (error) {
+            console.error(`Error processing image ${imageUrls[i]}:`, error);
+        }
+    }
+    
+    return trainData;
+}
+
+// Train the network with the processed images
+async function trainNetwork() {
+    try {
+        const trainData = await prepareTrainingData();
+        
+        await nn.train(trainData, {
+            epochs: 100,
+            learningRate: 0.01,
+        });
+        
+        console.log('Training completed');
+        console.log(nn.details);
+        
+        // Test with a new image
+        const testImageUrl = 'https://cdn.pixabay.com/photo/2024/02/17/00/18/cat-8578562_1280.jpg';
+        const testProcessed = await loadAndProcessImage(testImageUrl);
+        const prediction = nn.predict(testProcessed);
+        console.log('Prediction:', prediction);
+        
+    } catch (error) {
+        console.error('Training error:', error);
+    }
+}
+
+// Function to make a single prediction
+async function predictImage(imageUrl) {
+    try {
+        const processed = await loadAndProcessImage(imageUrl);
+        const prediction = nn.predict(processed);
+        return prediction;
+    } catch (error) {
+        console.error('Prediction error:', error);
+        return null;
+    }
+}
+
+// Run the training
+trainNetwork();
+```
