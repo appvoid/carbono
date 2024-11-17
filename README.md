@@ -9,7 +9,7 @@ carbono is an open-source JavaScript micro-library that provides a simple and ea
 
 - Lightweight: This is just JavaScript, so it's perfect to test on raspberry pi / low-powered devices. If it has a browser, you can run it. If not, you can run it on Node.js.
 
-- Activation Functions: The library supports various activation functions such as Tanh, Sigmoid, ReLU, and SELU, allowing for versatility in building neural network models.
+- Activation Functions: The library supports various activation functions such as Tanh, Sigmoid, ReLU, SELU and Softmax allowing for versatility in building neural network models.
 
 - Xavier/Glorot Initialization: It uses Xavier/Glorot initialization for weight parameters to ensure proper scaling, which helps speed up training.
 
@@ -130,6 +130,45 @@ nn.load(() => {
 ```
 
 Note: Ensure that you're running this in an environment where file operations are supported (e.g., a web browser) for the save and load functionality to work properly.
+
+## Classification example
+
+```javascript
+// Create a new neural network instance
+const nn = new carbono();
+nn.layer(4, 6, 'tanh');
+nn.layer(6, 4, 'softmax'); 
+
+// Prepare training data
+const trainData = [
+    {
+        input: [0.8, 0.2, 0.2, 0.1],
+        output: 'cat'
+    },
+    {
+        input: [0.9, 0.3, 0.4, 0.2],
+        output: 'dog'
+    },
+    {
+        input: [1.0, 0.5, 0.6, 0.3],
+        output: 'wolf'
+    },
+    {
+        input: [0.4, 0.2, 0.2, 0.1],
+        output: 'bird'
+    }
+];
+
+// Train the network
+nn.train(trainData, {
+    epochs: 50,
+    learningRate: 0.1,
+}).then(()=>{
+  const testInput = [0.9, 0.3, 0.4, 0.3];
+  const prediction = nn.predict(testInput);
+  console.log(prediction); // Will return a nicely formatted objects array like: [{'label':'class1','probability': 0.91283},...] 
+})
+```
 
 ## Advanced example
 
