@@ -12,7 +12,7 @@ carbono is a micro-library that provides a simple and easy-to-use interface for 
 
 - Summary: Generates a comprehensive summary of the training process, including loss, number of parameters, and training time.
 
-This tool is a great starting point for those who want to explore machine learning and neural networks without being overwhelmed by complexity. With its straightforward API and user-friendly design, carbono empowers anyone to build and experiment with neural networks in a flexible and accessible manner.
+With its straightforward API and user-friendly design, carbono empowers anyone to build and experiment with neural networks in a flexible and accessible manner.
 
 ### Quick Usage
 ```javascript
