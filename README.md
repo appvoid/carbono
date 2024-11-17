@@ -1,6 +1,6 @@
 # carbono
 
-carbono is a micro-library that provides a simple and easy-to-use interface for building and training Feed-Forward neural networks all in just ~500 lines of code. Take a look at the ![playground](https://huggingface.co/spaces/appvoid/carbono) and try to train a neural network.
+carbono is a micro-library that provides a simple and easy-to-use interface for building and training Feed-Forward neural networks all in just ~500 lines of code. Take a look at the [playground](https://huggingface.co/spaces/appvoid/carbono) and try to train a neural network.
 
 #### Features
 
