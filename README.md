@@ -6,9 +6,9 @@ carbono is a micro-library that provides a simple and easy-to-use interface for 
 
 - Minimal: Tanh, Sigmoid, ReLU, SELU and Softmax as activations and Xavier/Glorot initialization which helps speed up training.
 
-- Save and Load: Provides functionality to save the trained model as a JSON file and load it back for future use, making it convenient for users to resume work or just share it with people.
+- Informative: Generates a comprehensive summary of the training process, including loss, number of parameters, and training time.
 
-- Summary: Generates a comprehensive summary of the training process, including loss, number of parameters, and training time.
+- Iterative: Saves trained models as a JSON file and load them back. Useful to resume work or just share it with people.
 
 With its straightforward API and user-friendly design, carbono empowers anyone to build and experiment with neural networks in a flexible and accessible manner.
 
