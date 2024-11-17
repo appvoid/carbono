@@ -8,6 +8,7 @@ class carbono {
     this.biases = []; // 🔧 Stores biases for each layer
     this.activations = []; // 🚀 Stores activation functions for each layer
     this.details = {}; // 📊 Stores details about the model
+    this.labels = null; // 🏷️ Store class labels
     this.debug = debug; // 🐛 Enables or disables debug messages
   }
 
@@ -104,6 +105,36 @@ class carbono {
 
   // 🏋️‍♀️ Train the neural network
   async train(trainSet, options = {}) {
+
+    // Check if we have string labels and convert them
+    if (typeof trainSet[0].output === 'string' || (Array.isArray(trainSet[0].output) && typeof trainSet[0].output[0] === 'string')) {
+        // Extract unique labels
+        const uniqueLabels = Array.from(new Set(
+            trainSet.map(item => Array.isArray(item.output) ? item.output : [item.output]).flat()
+        ));
+        
+        // Store labels
+        this.labels = uniqueLabels;
+        
+        // Convert string labels to one-hot encoding
+        trainSet = trainSet.map(item => {
+            const output = Array.isArray(item.output) ? item.output : [item.output];
+            const oneHot = uniqueLabels.map(label => output.includes(label) ? 1 : 0);
+            return {
+                input: item.input,
+                output: oneHot
+            };
+        });
+        
+        // If no layers defined yet, automatically set up for classification
+        if (this.layers.length === 0) {
+            const numInputs = trainSet[0].input.length;
+            const numClasses = uniqueLabels.length;
+            this.layer(numInputs, Math.ceil((numInputs + numClasses) / 2), "tanh");
+            this.layer(Math.ceil((numInputs + numClasses) / 2), numClasses, "softmax");
+        }
+    }
+    
     const {
       epochs = 200,
       learningRate = 0.212,
@@ -313,42 +344,52 @@ class carbono {
     return trainingSummary;
   }
 
-  predict(input) {
+// Modified predict method to automatically handle labels
+predict(input,tags=true) {
     let layerInput = input;
     const allActivations = [input];
     const allRawValues = [];
 
     for (let i = 0; i < this.weights.length; i++) {
-      const weights = this.weights[i];
-      const biases = this.biases[i];
-      const activation = this.activations[i];
-      const rawValues = [];
+        const weights = this.weights[i];
+        const biases = this.biases[i];
+        const activation = this.activations[i];
+        const rawValues = [];
 
-      // Calculate raw values first
-      for (let j = 0; j < weights.length; j++) {
-        const weight = weights[j];
-        let sum = biases[j];
-        for (let k = 0; k < layerInput.length; k++) {
-          sum += layerInput[k] * weight[k];
+        // Calculate raw values first
+        for (let j = 0; j < weights.length; j++) {
+            const weight = weights[j];
+            let sum = biases[j];
+            for (let k = 0; k < layerInput.length; k++) {
+                sum += layerInput[k] * weight[k];
+            }
+            rawValues.push(sum);
         }
-        rawValues.push(sum);
-      }
 
-      // Apply activation function
-      const layerOutput =
-        activation === "softmax"
-          ? this.activationFunction(rawValues, "softmax")
-          : rawValues.map((sum) => this.activationFunction(sum, activation));
+        // Apply activation function
+        const layerOutput =
+            activation === "softmax"
+                ? this.activationFunction(rawValues, "softmax")
+                : rawValues.map((sum) => this.activationFunction(sum, activation));
 
-      allRawValues.push(rawValues);
-      allActivations.push(layerOutput);
-      layerInput = layerOutput;
+        allRawValues.push(rawValues);
+        allActivations.push(layerOutput);
+        layerInput = layerOutput;
     }
 
     this.lastActivations = allActivations;
     this.lastRawValues = allRawValues;
+
+    // If we have labels and using softmax, return labeled probabilities
+    if (this.labels && this.activations[this.activations.length - 1] === "softmax" && tags === true) {
+        return layerInput.map((prob, idx) => ({
+            label: this.labels[idx],
+            probability: prob
+        })).sort((a, b) => b.probability - a.probability);
+    }
+
     return layerInput;
-  }
+}
 
   // 💾 Save the model to a file
   save(name = "model") {
@@ -357,7 +398,8 @@ class carbono {
       biases: this.biases,
       activations: this.activations,
       layers: this.layers,
-      details: this.details
+      details: this.details,
+      labels: this.labels
     };
     const blob = new Blob([JSON.stringify(data)], {
       type: "application/json"
@@ -385,6 +427,7 @@ class carbono {
           this.activations = data.activations;
           this.layers = data.layers;
           this.details = data.details;
+          this.labels = data.labels;
           callback();
           if (this.debug === true) console.log("Model loaded successfully!");
           input.removeEventListener("change", handleListener);
