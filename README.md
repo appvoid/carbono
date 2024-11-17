@@ -4,9 +4,7 @@ carbono is a micro-library that provides a simple and easy-to-use interface for 
 
 #### Features
 
-- Activations: Tanh, Sigmoid, ReLU, SELU and Softmax.
-
-- Xavier/Glorot: It uses this initialization for weight parameters to ensure proper scaling, which helps speed up training.
+- Minimal: Tanh, Sigmoid, ReLU, SELU and Softmax as activations and Xavier/Glorot initialization which helps speed up training.
 
 - Save and Load: Provides functionality to save the trained model as a JSON file and load it back for future use, making it convenient for users to resume work or just share it with people.
 
