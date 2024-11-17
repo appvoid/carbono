@@ -1,6 +1,6 @@
 # carbono
 
-carbono is a micro-library that provides a simple and easy-to-use interface for building and training Feed-Forward neural networks all in just ~500 lines of code. If you don't want to code, you can also take a look at the [playground](https://huggingface.co/spaces/appvoid/carbono), try training your first model there.
+carbono is a micro-library that provides a simple and easy-to-use interface for building and training Feed-Forward neural networks all in just ~500 lines of code. If you don't want to code, you can also take a look at the [playground](https://huggingface.co/spaces/appvoid/carbono), try training your first model there. You can also check the [examples](https://github.com/appvoid/carbono/blob/main/examples.md) to get some boilerplate.
 
 #### Features
 
@@ -18,4 +18,4 @@ nn.train(dataset)
 console.log(nn.predict([0])) // should return a number near to [1]
 ```
 
-With its straightforward API and user-friendly design, carbono empowers anyone to build and experiment with neural networks in a flexible and accessible manner.
+With its straightforward [API](https://github.com/appvoid/carbono/blob/main/api.md) and user-friendly design, carbono empowers anyone to build and experiment with neural networks in a flexible and accessible manner.
