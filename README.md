@@ -2,32 +2,19 @@
 
 <img src="https://raw.githubusercontent.com/appvoid/carbono/main/dot.png" width="256px" height="256px"/>
 
+carbono is a micro-library that provides a simple and easy-to-use interface for building and training Feed-Forward neural networks all in just ~500 lines of code.
 
-carbono is an open-source JavaScript micro-library that provides a simple and easy-to-use interface for building and training Feed-Forward neural networks all in just ~500 lines of code. Designed with usability in mind, the library is perfect for those who are new to machine learning and want to get started without the steep learning curve.
+#### Features
 
-### Key Features
+- Activations: Tanh, Sigmoid, ReLU, SELU and Softmax.
 
-- Lightweight: This is just JavaScript, so it's perfect to test on raspberry pi / low-powered devices. If it has a browser, you can run it. If not, you can run it on Node.js.
-
-- Activation Functions: The library supports various activation functions such as Tanh, Sigmoid, ReLU, SELU and Softmax allowing for versatility in building neural network models.
-
-- Xavier/Glorot Initialization: It uses Xavier/Glorot initialization for weight parameters to ensure proper scaling, which helps speed up training.
-
-- Easy-to-Use Interface: With a simple and intuitive API, users can easily define the structure of the neural network, add layers, and set training parameters.
-
-- Training and Prediction: It supports training the neural network with a dataset and making predictions with the trained model.
-
-- Batch Training: Supports training in batches for improved performance and stability.
-
-- Early Stopping: Implements early stopping to prevent overfitting.
-
-- Model Evaluation: Supports evaluation on a test set during training.
+- Xavier/Glorot: It uses this initialization for weight parameters to ensure proper scaling, which helps speed up training.
 
 - Save and Load: Provides functionality to save the trained model as a JSON file and load it back for future use, making it convenient for users to resume work.
 
-- Detailed Training Summary: Generates a comprehensive summary of the training process, including loss, number of parameters, and training time.
+- Summary: Generates a comprehensive summary of the training process, including loss, number of parameters, and training time.
 
-The Carbono Neural Network library is a great starting point for those who want to explore machine learning and neural networks without being overwhelmed by complexity. With its straightforward API and user-friendly design, this library empowers users to build and experiment with neural networks in a flexible and accessible manner.
+This tool is a great starting point for those who want to explore machine learning and neural networks without being overwhelmed by complexity. With its straightforward API and user-friendly design, carbono empowers anyone to build and experiment with neural networks in a flexible and accessible manner.
 
 ### Quick Usage
 ```javascript
