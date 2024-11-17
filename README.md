@@ -10,7 +10,7 @@ carbono is a micro-library that provides a simple and easy-to-use interface for 
 
 - Xavier/Glorot: It uses this initialization for weight parameters to ensure proper scaling, which helps speed up training.
 
-- Save and Load: Provides functionality to save the trained model as a JSON file and load it back for future use, making it convenient for users to resume work.
+- Save and Load: Provides functionality to save the trained model as a JSON file and load it back for future use, making it convenient for users to resume work or just share it with people.
 
 - Summary: Generates a comprehensive summary of the training process, including loss, number of parameters, and training time.
 
