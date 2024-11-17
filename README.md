@@ -11,6 +11,10 @@ carbono is a micro-library that provides a simple and easy-to-use interface for 
 - Iterative: Saves trained models as a JSON file and load them back. Useful to resume work or just share it with people.
 
 ### Quick Usage
+```html
+<script src="carbono.js"></script>
+```
+
 ```javascript
 const nn = new carbono()
 const dataset = [{input: [0], output: [1]}, {input: [1], output: [0]}]
