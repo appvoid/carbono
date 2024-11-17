@@ -50,7 +50,7 @@ nn.layer(inputSize, outputSize, activation = 'tanh');
 nn.train(trainSet, options);
 ```
 
-- `trainSet`: An array of objects with `input` and `output` properties representing the training data.
+- `trainSet`: An array of objects with `input` and `output` properties representing the training data. `output` accepts a number and a sequence of numbers (or a label when using softmax).
 - `options` (optional): An object containing training parameters:
   - `epochs` (default: 200): Number of training epochs.
   - `learningRate` (default: 0.212): Learning rate for gradient descent.
@@ -62,10 +62,11 @@ nn.train(trainSet, options);
 ### Method: `predict`
 
 ```javascript
-const result = nn.predict(input);
+const result = nn.predict(input,tags=true);
 ```
 
 - `input`: An array representing the input data for prediction.
+- `tags`: Determines if a model (trained on labels) should format with labels or just return raw predictions.
 
 ### Method: `save`
 
