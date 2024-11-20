@@ -28,7 +28,6 @@ nn.train(trainSet, options);
 - `options` (optional): An object containing training parameters:
   - `epochs` (default: 200): Number of training epochs.
   - `learningRate` (default: 0.212): Learning rate for gradient descent.
-  - `batchSize` (default: 16): Size of each training batch.
   - `printEveryEpochs` (default: 100): Prints training error every specified number of epochs.
   - `earlyStopThreshold` (default: 1e-6): Threshold for early stopping.
   - `testSet` (default: null): Optional test set for evaluation during training.
