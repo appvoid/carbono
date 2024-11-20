@@ -121,7 +121,6 @@ nn.layer(10, labels.length, "softmax"); // output classes
 nn.train(trainSet, {
   epochs: 100,
   learningRate: 0.1,
-  batchSize: 8,
   printEveryEpochs: 25,
   earlyStopThreshold: 1e-5,
 }).then((summary) => {
