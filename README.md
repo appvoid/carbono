@@ -20,8 +20,9 @@ carbono is a micro-library that provides a simple and easy-to-use interface for 
 ```javascript
 const nn = new carbono()
 const dataset = [{input: [0], output: [1]}, {input: [1], output: [0]}]
-nn.train(dataset)
-console.log(nn.predict([0])) // should return a number near to [1]
+nn.train(dataset).then(()=>{
+  console.log(nn.predict([0])) // should return a number near to [1]  
+})
 ```
 
 With its straightforward [API](https://github.com/appvoid/carbono/blob/main/api.md) and user-friendly design, carbono empowers anyone to build and experiment with neural networks in a flexible and accessible manner.
