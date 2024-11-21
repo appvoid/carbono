@@ -1,4 +1,4 @@
-## Basic example
+## Simple example
 
 ```javascript
 // Create a neural network and add layers to it
@@ -137,6 +137,138 @@ nn.train(trainSet, {
   console.log("Predicted Label:", predictedLabel);
   console.log("Predicted Emoji:", emojis[labels.indexOf(predictedLabel)]);
 });
+```
+
+## Evaluation for best model
+```javascript
+// Softmax/Categorical Cross-Entropy Friendly Dataset (Iris Dataset)
+const irisTrainSet = [
+  { input: [.1, .5, .4, 0.2], output: [1, 0, 0] }, // Setosa
+  { input: [.9, .0, .4, 0.2], output: [1, 0, 0] }, // Setosa
+  { input: [.2, .4, .4, .3], output: [0, 0, 1] }, // Virginica
+  { input: [.9, .0, .1, .8], output: [0, 0, 1] }, // Virginica
+  { input: [.4, .9, .7, 0.4], output: [1, 0, 0] }, // Setosa
+  { input: [.0, .2, .7, .4], output: [0, 1, 0] }, // Versicolor
+  { input: [.4, .2, .5, .5], output: [0, 1, 0] }, // Versicolor
+  { input: [.3, .3, .0, .5], output: [0, 0, 1] }, // Virginica
+  { input: [.8, .7, .1, .9], output: [0, 0, 1] }, // Virginica
+  { input: [.7, .8, .1, .3], output: [0, 1, 0] }, // Versicolor
+];
+
+const irisTestSet = [
+  { input: [.1, .5, .4, 0.2], output: [1, 0, 0] }, // Setosa
+  { input: [.2, .4, .4, .3], output: [0, 0, 1] }, // Virginica
+  { input: [.4, .9, .7, 0.4], output: [1, 0, 0] }, // Setosa
+  { input: [.0, .2, .7, .4], output: [0, 1, 0] }, // Versicolor
+];
+
+// Simpler Dataset with More Inputs (Regression Task)
+const simpleTrainSet = [
+  { input: [0.1, 0.2, 0.3, 0.4, 0.5], output: [0.1] },
+  { input: [0.2, 0.3, 0.4, 0.5, 0.6], output: [0.2] },
+  { input: [0.3, 0.4, 0.5, 0.6, 0.7], output: [0.3] },
+  { input: [0.4, 0.5, 0.6, 0.7, 0.8], output: [0.4] },
+  { input: [0.5, 0.6, 0.7, 0.8, 0.9], output: [0.5] },
+  { input: [0.6, 0.7, 0.8, 0.9, 1.0], output: [0.6] },
+  { input: [0.7, 0.8, 0.9, 1.0, 0.1], output: [0.7] },
+  { input: [0.8, 0.9, 1.0, 0.1, 0.2], output: [0.8] },
+  { input: [0.9, 1.0, 0.1, 0.2, 0.3], output: [0.9] },
+  { input: [1.0, 0.1, 0.2, 0.3, 0.4], output: [1.0] },
+];
+
+const simpleTestSet = [
+  { input: [0.1, 0.2, 0.3, 0.4, 0.5], output: [0.1] },
+  { input: [0.2, 0.3, 0.4, 0.5, 0.6], output: [0.2] },
+  { input: [0.3, 0.4, 0.5, 0.6, 0.7], output: [0.3] },
+  { input: [0.4, 0.5, 0.6, 0.7, 0.8], output: [0.4] },
+];
+
+// Function to train a model with given parameters
+async function trainModel(trainSet, testSet, optimizer, lossFunction, activation) {
+  const model = new carbono(true);
+
+  // Define layers based on activation function and loss function compatibility
+  if (lossFunction === "cross-entropy") {
+    if (activation !== "softmax" && activation !== "sigmoid") {
+      console.warn(
+        `⚠️ For cross-entropy loss, it's recommended to use 'softmax' (multi-class) or 'sigmoid' (binary) activation. Using 'softmax' by default.`
+      );
+      activation = "softmax";
+    }
+    if (trainSet[0].output.length > 1) {
+      model.layer(trainSet[0].input.length, Math.ceil((trainSet[0].input.length + trainSet[0].output.length) / 2), "tanh");
+      model.layer(Math.ceil((trainSet[0].input.length + trainSet[0].output.length) / 2), trainSet[0].output.length, activation);
+    } else {
+      // Binary classification or regression with sigmoid
+      model.layer(trainSet[0].input.length, Math.ceil((trainSet[0].input.length + trainSet[0].output.length) / 2), "tanh");
+      model.layer(Math.ceil((trainSet[0].input.length + trainSet[0].output.length) / 2), trainSet[0].output.length, activation);
+    }
+  } else {
+    // For MSE or other loss functions, use appropriate activation
+    model.layer(trainSet[0].input.length, 3, "tanh");
+    model.layer(3, trainSet[0].output.length, "tanh");
+  }
+
+  // Train the model
+  const options = {
+    epochs: 100,
+    learningRate: 0.1,
+    printEveryEpochs: 100,
+    earlyStopThreshold: lossFunction === "cross-entropy" ? 1e-4 : 1e-6,
+    testSet,
+    optimizer,
+    lossFunction,
+  };
+
+  // Log the summary
+  console.log(`\n🔍 Training Model with Optimizer: ${optimizer}, Loss Function: ${lossFunction}, Activation: ${activation}`);
+  const summary = await model.train(trainSet, options);
+
+}
+
+// Train models with different combinations
+async function trainAllModels() {
+  const optimizers = ["sgd", "adam"];
+  const lossFunctions = ["mse", "cross-entropy"];
+  const activations = ["tanh", "softmax"];
+
+  // Train models on Iris dataset
+  console.log("📚 Training models on Iris dataset:");
+  for (const optimizer of optimizers) {
+    for (const lossFunction of lossFunctions) {
+      for (let activation of activations) {
+        // Skip incompatible activation and loss function combinations
+        if (lossFunction === "cross-entropy" && activation === "tanh") {
+          console.warn(
+            `⚠️ Skipping combination: Optimizer=${optimizer}, Loss Function=${lossFunction}, Activation=${activation} (Incompatible)`
+          );
+          continue;
+        }
+        await trainModel(irisTrainSet, irisTestSet, optimizer, lossFunction, activation);
+      }
+    }
+  }
+
+  // Train models on simpler dataset
+  console.log("\n📚 Training models on simpler dataset:");
+  for (const optimizer of optimizers) {
+    for (const lossFunction of lossFunctions) {
+      for (let activation of activations) {
+        // Skip cross-entropy loss for regression tasks
+        if (lossFunction === "cross-entropy") {
+          console.warn(
+            `⚠️ Skipping combination: Optimizer=${optimizer}, Loss Function=${lossFunction}, Activation=${activation} (Not suitable for regression)`
+          );
+          continue;
+        }
+        await trainModel(simpleTrainSet, simpleTestSet, optimizer, lossFunction, activation);
+      }
+    }
+  }
+}
+
+// Run the training
+trainAllModels();
 ```
 
 ## Dummy image recognition
