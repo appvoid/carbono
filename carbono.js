@@ -10,6 +10,12 @@ class carbono {
     this.details = {}; // 📊 Stores details about the model
     this.labels = null; // 🏷️ Store class labels
     this.debug = debug; // 🐛 Enables or disables debug messages
+
+    // 🌟 Added for Adam optimizer support
+    this.weight_m = []; // 🌪️ First moment estimates for weights
+    this.weight_v = []; // 🌩️ Second moment estimates for weights
+    this.bias_m = [];   // 🌪️ First moment estimates for biases
+    this.bias_v = [];   // 🌩️ Second moment estimates for biases
   }
 
   // 🏗️ Add a new layer to the neural network
@@ -92,9 +98,8 @@ class carbono {
         const scale = 1.0507;
         return x > 0 ? scale : scale * alpha * Math.exp(x);
       case "softmax":
-        // For softmax, return simplified diagonal of Jacobian
-        const softmaxOutput = this.activationFunction(x, "softmax");
-        return softmaxOutput.map((s) => s * (1 - s));
+        // For softmax, derivative is handled during backpropagation
+        return null; // Not used directly
       default:
         throw new Error(
           "Oops! We don't know the derivative of that activation function."
@@ -156,16 +161,42 @@ class carbono {
       earlyStopThreshold = 1e-6, // 🛑 Threshold for early stopping
       testSet = null, // 🧪 Optional test set for evaluating performance
       callback = null, // 🔄 Optional callback function after each epoch
+      optimizer = "sgd", // 🏋️‍♂️ Optimizer to use ('sgd' or 'adam')
+      lossFunction = "mse", // 🔥 Loss function to use ('mse' or 'cross-entropy')
     } = options;
 
     const start = Date.now(); // ⏱️ Start time
-    // 🎛️ Removed batchSize as per request
 
     // 🏗️ Initialize layers if none are defined
     if (this.layers.length === 0) {
       const numInputs = trainSet[0].input.length;
       this.layer(numInputs, numInputs, "tanh");
       this.layer(numInputs, 1, "tanh");
+    }
+
+    // 🌟 Initialize optimizer variables if Adam is selected
+    let t = 0; // 🔢 Time step for Adam optimizer
+    if (optimizer === "adam") {
+      this.initializeAdam();
+    }
+
+    // 🔍 Validate activation and loss function compatibility
+    if (lossFunction === "cross-entropy") {
+      const outputActivation = this.activations[this.activations.length - 1];
+      if (outputActivation !== "softmax" && outputActivation !== "sigmoid") {
+        throw new Error(
+          "Cross-entropy loss requires the output layer activation to be either 'softmax' or 'sigmoid'."
+        );
+      }
+    }
+
+    // 🔍 Validate that 'softmax' is only used in the output layer
+    for (let i = 0; i < this.activations.length - 1; i++) {
+      if (this.activations[i] === "softmax") {
+        throw new Error(
+          "Softmax activation should only be used in the output layer."
+        );
+      }
     }
 
     let lastTrainLoss = 0;
@@ -177,8 +208,11 @@ class carbono {
 
       // 🔄 Iterate over each training example
       for (const data of trainSet) {
+        t++; // ⏱️ Increment time step
+
         // ➡️ Forward pass
         const layerInputs = [data.input];
+        const layerRawOutputs = []; // 🧮 Raw outputs before activation
         for (let i = 0; i < this.weights.length; i++) {
           const inputs = layerInputs[i];
           const weights = this.weights[i];
@@ -196,6 +230,8 @@ class carbono {
             rawOutputs.push(sum);
           }
 
+          layerRawOutputs.push(rawOutputs);
+
           // 🎇 Apply activation function
           const outputs =
             activation === "softmax"
@@ -210,19 +246,37 @@ class carbono {
         // ⬅️ Backward pass
         const outputLayerIndex = this.weights.length - 1;
         const outputLayerInputs = layerInputs[layerInputs.length - 1];
+        const outputLayerRawOutputs = layerRawOutputs[layerRawOutputs.length - 1];
         const outputErrors = [];
 
-        if (this.activations[outputLayerIndex] === "softmax") {
-          // 🧮 Cross-entropy error gradient for softmax
+        // 🔥 Compute error based on loss function
+        if (lossFunction === "cross-entropy") {
+          // 🛑 Ensure compatibility
+          const outputActivation = this.activations[outputLayerIndex];
+          if (outputActivation === "softmax" || outputActivation === "sigmoid") {
+            // 📉 Cross-entropy error gradient
+            for (let i = 0; i < outputLayerInputs.length; i++) {
+              const error = outputLayerInputs[i] - data.output[i];
+              outputErrors.push(error);
+            }
+          } else {
+            throw new Error(
+              "Cross-entropy loss requires 'softmax' or 'sigmoid' activation in the output layer."
+            );
+          }
+        } else if (lossFunction === "mse") {
+          // 📊 Mean Squared Error gradient
           for (let i = 0; i < outputLayerInputs.length; i++) {
-            const error = data.output[i] - outputLayerInputs[i];
+            const error =
+              (outputLayerInputs[i] - data.output[i]) *
+              this.activationDerivative(
+                outputLayerRawOutputs[i],
+                this.activations[outputLayerIndex]
+              );
             outputErrors.push(error);
           }
         } else {
-          for (let i = 0; i < outputLayerInputs.length; i++) {
-            const error = data.output[i] - outputLayerInputs[i];
-            outputErrors.push(error);
-          }
+          throw new Error("Unsupported loss function.");
         }
 
         let layerErrors = [outputErrors];
@@ -231,8 +285,7 @@ class carbono {
         for (let i = this.weights.length - 2; i >= 0; i--) {
           const nextLayerWeights = this.weights[i + 1];
           const nextLayerErrors = layerErrors[0];
-          const currentLayerInputs = layerInputs[i + 1];
-          const currentActivation = this.activations[i];
+          const currentLayerRawOutputs = layerRawOutputs[i];
           const errors = [];
 
           for (let j = 0; j < this.layers[i].outputSize; j++) {
@@ -240,13 +293,14 @@ class carbono {
             for (let k = 0; k < this.layers[i + 1].outputSize; k++) {
               error += nextLayerErrors[k] * nextLayerWeights[k][j];
             }
-            errors.push(
-              error *
-                this.activationDerivative(
-                  currentLayerInputs[j],
-                  currentActivation
-                )
+            const activationDeriv = this.activationDerivative(
+              currentLayerRawOutputs[j],
+              this.activations[i]
             );
+            if (activationDeriv !== null) {
+              error *= activationDeriv;
+            }
+            errors.push(error);
           }
           layerErrors.unshift(errors);
         }
@@ -258,49 +312,97 @@ class carbono {
           const weights = this.weights[i];
           const biases = this.biases[i];
 
+          // 🌟 Added for gradient storage and optimization
+          const weightGradients = [];
+          const biasGradients = [];
+
           for (let j = 0; j < weights.length; j++) {
             const weight = weights[j];
+            const weightGradient = [];
             for (let k = 0; k < inputs.length; k++) {
-              weight[k] += learningRate * errors[j] * inputs[k];
+              const grad = errors[j] * inputs[k];
+              weightGradient.push(grad);
             }
-            biases[j] += learningRate * errors[j];
+            weightGradients.push(weightGradient);
+            biasGradients.push(errors[j]);
+          }
+
+          // 🛠️ Apply optimizer updates
+          if (optimizer === "adam") {
+            this.applyAdamOptimization(
+              i,
+              weightGradients,
+              biasGradients,
+              t,
+              learningRate
+            );
+          } else {
+            // 🏃‍♂️ Standard SGD update
+            for (let j = 0; j < weights.length; j++) {
+              const weight = weights[j];
+              for (let k = 0; k < inputs.length; k++) {
+                weight[k] -= learningRate * weightGradients[j][k];
+              }
+              biases[j] -= learningRate * biasGradients[j];
+            }
           }
         }
 
-        // 🧮 Calculate error based on output type
-        if (this.activations[outputLayerIndex] === "softmax") {
-          // 📉 Cross-entropy error for softmax
-          trainError += -outputLayerInputs.reduce(
-            (sum, output, i) =>
-              sum + data.output[i] * Math.log(output + 1e-15),
+        // 🧮 Calculate loss based on loss function
+        if (lossFunction === "cross-entropy") {
+          // 📉 Cross-entropy loss for multi-class classification
+          // Ensure predictions are clipped to avoid log(0)
+          const clippedOutputs = outputLayerInputs.map((pred) =>
+            Math.max(Math.min(pred, 1 - 1e-15), 1e-15)
+          );
+          const singleLoss = -data.output.reduce(
+            (sum, target, i) => sum + target * Math.log(clippedOutputs[i]),
             0
           );
-        } else {
-          // 📊 Mean Absolute Error for other activations
-          trainError += outputErrors.reduce((sum, err) => sum + Math.abs(err), 0);
+          trainError += singleLoss;
+        } else if (lossFunction === "mse") {
+          // 📊 Mean Squared Error
+          const mse = outputErrors.reduce((sum, err) => sum + err ** 2, 0);
+          trainError += mse;
         }
       }
 
       // 📉 Calculate average training loss
-      lastTrainLoss = trainError / trainSet.length;
+      if (lossFunction === "cross-entropy") {
+        lastTrainLoss = trainError / trainSet.length;
+      } else if (lossFunction === "mse") {
+        lastTrainLoss = trainError / trainSet.length;
+      }
 
       // 🧪 Evaluate on test set if provided
       if (testSet) {
         let testError = 0;
         for (const data of testSet) {
-          const prediction = this.predict(data.input);
-          if (
-            this.activations[this.activations.length - 1] === "softmax"
-          ) {
-            // 📉 Cross-entropy error for softmax
-            testError += -prediction.reduce(
-              (sum, output, i) =>
-                sum + data.output[i] * Math.log(output.probability + 1e-15),
+          const prediction = this.predict(data.input, false);
+          if (lossFunction === "cross-entropy") {
+            const outputActivation = this.activations[this.activations.length - 1];
+            if (outputActivation === "softmax" || outputActivation === "sigmoid") {
+              // 📉 Cross-entropy loss for multi-class classification
+              const clippedOutputs = prediction.map((pred) =>
+                Math.max(Math.min(pred, 1 - 1e-15), 1e-15)
+              );
+              const singleLoss = -data.output.reduce(
+                (sum, target, i) => sum + target * Math.log(clippedOutputs[i]),
+                0
+              );
+              testError += singleLoss;
+            } else {
+              throw new Error(
+                "Cross-entropy loss requires 'softmax' or 'sigmoid' activation in the output layer."
+              );
+            }
+          } else if (lossFunction === "mse") {
+            // 📊 Mean Squared Error
+            const mse = prediction.reduce(
+              (sum, output, i) => sum + (output - data.output[i]) ** 2,
               0
             );
-          } else {
-            // 📊 Mean Absolute Error for other activations
-            testError += Math.abs(data.output[0] - prediction[0]);
+            testError += mse;
           }
         }
         lastTestLoss = testError / testSet.length;
@@ -365,6 +467,71 @@ class carbono {
 
     this.details = trainingSummary; // 📚 Store training details
     return trainingSummary; // 📤 Return summary
+  }
+
+  // 🌟 Initialize Adam optimizer variables
+  initializeAdam() {
+    this.weight_m = this.weights.map((weightLayer) =>
+      weightLayer.map((row) => row.map(() => 0))
+    );
+    this.weight_v = this.weights.map((weightLayer) =>
+      weightLayer.map((row) => row.map(() => 0))
+    );
+    this.bias_m = this.biases.map((biasLayer) => biasLayer.map(() => 0));
+    this.bias_v = this.biases.map((biasLayer) => biasLayer.map(() => 0));
+  }
+
+  // 🌟 Apply Adam optimizer updates
+  applyAdamOptimization(
+    layerIndex,
+    weightGradients,
+    biasGradients,
+    t,
+    learningRate
+  ) {
+    const beta1 = 0.9;
+    const beta2 = 0.999;
+    const epsilon = 1e-8;
+
+    const weights = this.weights[layerIndex];
+    const biases = this.biases[layerIndex];
+    const weight_m = this.weight_m[layerIndex];
+    const weight_v = this.weight_v[layerIndex];
+    const bias_m = this.bias_m[layerIndex];
+    const bias_v = this.bias_v[layerIndex];
+
+    for (let j = 0; j < weights.length; j++) {
+      // Update weights
+      for (let k = 0; k < weights[j].length; k++) {
+        // Gradient
+        const g = weightGradients[j][k];
+
+        // Update moments
+        weight_m[j][k] = beta1 * weight_m[j][k] + (1 - beta1) * g;
+        weight_v[j][k] = beta2 * weight_v[j][k] + (1 - beta2) * g * g;
+
+        // Bias correction
+        const m_hat = weight_m[j][k] / (1 - Math.pow(beta1, t));
+        const v_hat = weight_v[j][k] / (1 - Math.pow(beta2, t));
+
+        // Update weights
+        weights[j][k] -= (learningRate * m_hat) / (Math.sqrt(v_hat) + epsilon);
+      }
+
+      // Update biases
+      const g_bias = biasGradients[j];
+
+      // Update moments
+      bias_m[j] = beta1 * bias_m[j] + (1 - beta1) * g_bias;
+      bias_v[j] = beta2 * bias_v[j] + (1 - beta2) * g_bias * g_bias;
+
+      // Bias correction
+      const m_hat_bias = bias_m[j] / (1 - Math.pow(beta1, t));
+      const v_hat_bias = bias_v[j] / (1 - Math.pow(beta2, t));
+
+      // Update biases
+      biases[j] -= (learningRate * m_hat_bias) / (Math.sqrt(v_hat_bias) + epsilon);
+    }
   }
 
   // 🔮 Predict the output for a given input, optionally returning labeled probabilities
