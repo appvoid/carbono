@@ -604,7 +604,7 @@ class carbono {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${name}.json`;
+    a.download = `${name}.uai`;
     a.click();
     URL.revokeObjectURL(url); // 🚮 Clean up
   }
@@ -640,7 +640,7 @@ class carbono {
     };
     const input = document.createElement("input"); // 📥 Create file input
     input.type = "file";
-    input.accept = ".json";
+    input.accept = ".uai";
     input.style.opacity = "0"; // 🕶️ Hide input
     document.body.append(input);
     input.addEventListener("change", handleListener.bind(this)); // 📑 Listen for file selection
