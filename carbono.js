@@ -3,7 +3,6 @@ class carbono {
     this.layers = [];
     this.weights = [];
     this.biases = [];
-    this.activations = [];
     this.details = {};
     this.labels = null;
     this.debug = debug;
@@ -116,7 +115,6 @@ class carbono {
     this.weights.push(weights);
     this.biases.push(Array(outputSize)
       .fill(0.01));
-    this.activations.push(activation);
   }
 
   // Forward Propagation
@@ -131,9 +129,10 @@ class carbono {
       );
 
       layerRawOutputs.push(rawOutput);
-      current = this.activations[i] === 'softmax' ?
+      const layerActivation = this.layers[i].activation;
+      current = layerActivation === 'softmax' ?
         this.#getActivation(rawOutput, 'softmax') :
-        rawOutput.map(x => this.#getActivation(x, this.activations[i]));
+        rawOutput.map(x => this.#getActivation(x, layerActivation));
       layerInputs.push(current);
     }
 
@@ -145,8 +144,9 @@ class carbono {
 
   // Backward Propagation
   #backPropagate(layerInputs, layerRawOutputs, target, lossFunction) {
+    const outputLayer = this.layers[this.layers.length - 1];
     const outputErrors = this.#lossFunctions[lossFunction].derivative(
-      layerInputs[layerInputs.length - 1], target, this.activations[this.activations.length - 1]
+      layerInputs[layerInputs.length - 1], target, outputLayer.activation
     );
 
     const layerErrors = [outputErrors];
@@ -160,7 +160,7 @@ class carbono {
           errors[j] += layerErrors[0][k] * this.weights[i + 1][k][j];
         }
         const activationDeriv = this.#getActivationDerivative(
-          layerRawOutputs[i][j], this.activations[i]
+          layerRawOutputs[i][j], this.layers[i].activation
         );
         if (activationDeriv !== null) {
           errors[j] *= activationDeriv;
@@ -402,7 +402,7 @@ class carbono {
     const output = layerInputs[layerInputs.length - 1];
 
     if (this.labels &&
-      this.activations[this.activations.length - 1] === "softmax" &&
+      this.layers[this.layers.length - 1].activation === "softmax" &&
       tags) {
       return output
         .map((prob, idx) => ({
@@ -415,65 +415,77 @@ class carbono {
     return output;
   }
 
-  save(name = "model") {
-    const data = {
+  async save(name = "model") {
+    const modelData = {
       weights: this.weights,
       biases: this.biases,
-      activations: this.activations,
       layers: this.layers,
       details: this.details,
-      labels: this.labels,
+      labels: this.labels
     };
 
-    const blob = new Blob([JSON.stringify(data)], {
+    const blob = new Blob([JSON.stringify(modelData)], {
       type: "application/json"
     });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${name}.uai`;
-    a.click();
-    URL.revokeObjectURL(url);
+    const downloadUrl = URL.createObjectURL(blob);
+
+    try {
+      const link = Object.assign(document.createElement('a'), {
+        href: downloadUrl,
+        download: `${name}.uai`,
+        style: 'display: none'
+      });
+
+      document.body.appendChild(link);
+      link.click();
+    } finally {
+      URL.revokeObjectURL(downloadUrl);
+    }
   }
 
-  load(callback) {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = ".uai";
-    input.style.opacity = "0";
-    document.body.append(input);
+  async load(callback) {
+    const createFileInput = () => Object.assign(document.createElement('input'), {
+      type: 'file',
+      accept: '.uai',
+      style: 'display: none'
+    });
 
-    const handleLoad = event => {
-      const file = event.target.files[0];
+    const readFile = file => new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = e => resolve(e.target.result);
+      reader.onerror = reject;
+      reader.readAsText(file);
+    });
+
+    try {
+      const input = createFileInput();
+      document.body.appendChild(input);
+
+      const [file] = await new Promise(resolve => {
+        input.onchange = e => resolve(e.target.files);
+        input.click();
+      });
+
       if (!file) return;
 
-      const reader = new FileReader();
-      reader.onload = e => {
-        try {
-          const data = JSON.parse(e.target.result);
-          Object.assign(this, {
-            weights: data.weights,
-            biases: data.biases,
-            activations: data.activations,
-            layers: data.layers,
-            details: data.details,
-            labels: data.labels,
-          });
+      const content = await readFile(file);
+      const modelData = JSON.parse(content);
 
-          if (this.debug) console.log("✅ Model loaded successfully!");
-          callback?.();
-        } catch (err) {
-          if (this.debug) console.error("❌ Failed to load model:", err);
-        } finally {
-          input.remove();
-        }
-      };
-      reader.readAsText(file);
-    };
+      Object.assign(this, {
+        weights: modelData.weights,
+        biases: modelData.biases,
+        layers: modelData.layers,
+        details: modelData.details,
+        labels: modelData.labels
+      });
 
-    input.addEventListener("change", handleLoad, {
-      once: true
-    });
-    input.click();
+      this.debug && console.log("✅ Model loaded successfully!");
+      callback?.();
+    } catch (error) {
+      this.debug && console.error("❌ Failed to load model:", error);
+    } finally {
+      document.querySelector('input[type="file"]')
+        ?.remove();
+    }
   }
 }
