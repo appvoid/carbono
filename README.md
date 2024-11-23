@@ -6,7 +6,7 @@
 > - v2: softmax, cross-entropy and labels for classifications
 > - v1: first release
 
-A micro-library with a simple api to build and train feed-forward neural networks, all within 500 lines of code. Take a look at the [playground](https://huggingface.co/spaces/appvoid/carbono) and try training your first model. Also check some [examples](https://github.com/appvoid/carbono/blob/main/examples.md) to get familiar with this library. Its straightforward [api](https://github.com/appvoid/carbono/blob/main/api.md) lets anyone to prototype with neural networks like never before.
+a micro-library with a simple api to build and train feed-forward neural networks, all within 500 lines of code. Take a look at the [playground](https://huggingface.co/spaces/appvoid/carbono) and try training your first model. Also check some [examples](https://github.com/appvoid/carbono/blob/main/examples.md) to get familiar with this library. Its straightforward [api](https://github.com/appvoid/carbono/blob/main/api.md) lets anyone to prototype with neural networks like never before.
 
 #### Quick Usage
 ```html
