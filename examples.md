@@ -67,7 +67,7 @@ const trainData = [
 
 // Train the network
 nn.train(trainData, {
-    epochs: 50,
+    epochs: 200,
     learningRate: 0.1,
 }).then(()=>{
   const testInput = [0.9, 0.3, 0.4, 0.3]; // Let's try with the "dog" inputs
