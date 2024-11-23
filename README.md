@@ -20,3 +20,5 @@ nn.train(dataset).then(()=>{
   console.log(nn.predict([0])) // should return a number near to [1]  
 })
 ```
+
+> if you need help, you can reach to me as @apppvoidofficial on X, you can also find me on tinyllama discord server sometimes.
