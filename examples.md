@@ -70,7 +70,7 @@ nn.train(trainData, {
     epochs: 50,
     learningRate: 0.1,
 }).then(()=>{
-  const testInput = [0.9, 0.3, 0.4, 0.3];
+  const testInput = [0.9, 0.3, 0.4, 0.3]; // Let's try with the "dog" inputs
   const prediction = nn.predict(testInput);
   console.log(prediction); // Will return a nicely formatted objects array like: [{'label':'class1','probability': 0.91283},...] 
 })
