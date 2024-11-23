@@ -1,8 +1,7 @@
 /* 
- *  this is a complete example of an standard feed-forward neural network
- *  ideally, in the future, this class should be sufficient to handle general use-case scenarios
- *  as well as becoming a supportive, general-purpose engine for training and inference
- *  on most popular frameworks' models out there - having said that, be warned, as most indie oss projects, 
+ *  this is a complete example of an standard feed-forward neural network and ideally, in the future, this class should be 
+ *  sufficient to handle general use-case scenarios as well as becoming a supportive, general-purpose engine for training and 
+ *  inference on most popular frameworks' models out there - having said that, be warned, as most indie oss projects, 
  *  this is not by any means stable yet, even though the tool will improve over time, use at your own risk.
  */
 class carbono {
@@ -330,6 +329,7 @@ class carbono {
       delete this.bias_v;
     }
 
+    // Returns metadata
     return this.#generateTrainingSummary(start, Date.now(), {
       epochs,
       learningRate,
@@ -429,7 +429,7 @@ class carbono {
       biases: this.biases,
       layers: this.layers,
       details: this.details,
-      // Only include labels if they exist and are being used
+      // Include labels if they exist and are being used
       ...(this.labels && {
         labels: this.labels
       })
@@ -488,7 +488,6 @@ class carbono {
       this.layers = modelData.layers;
       this.details = modelData.details;
 
-      // Only load labels if they exist in the saved model
       if (modelData.labels) {
         this.labels = modelData.labels;
       }
