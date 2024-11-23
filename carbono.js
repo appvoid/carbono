@@ -1,10 +1,10 @@
 /* 
-*  this is a complete example of an standard feed-forward neural network
-*  ideally, in the future, this class should be sufficient to handle general use-case scenarios
-*  as well as becoming a supportive, general-purpose engine for training and inference
-*  on most popular frameworks' models out there - having said that, be warned, as most indie oss projects, 
-*  this is not by any means stable yet, even though the tool will improve over time, use at your own risk.
-*/ 
+ *  this is a complete example of an standard feed-forward neural network
+ *  ideally, in the future, this class should be sufficient to handle general use-case scenarios
+ *  as well as becoming a supportive, general-purpose engine for training and inference
+ *  on most popular frameworks' models out there - having said that, be warned, as most indie oss projects, 
+ *  this is not by any means stable yet, even though the tool will improve over time, use at your own risk.
+ */
 class carbono {
   constructor(debug = true) {
     this.layers = [];
@@ -429,7 +429,10 @@ class carbono {
       biases: this.biases,
       layers: this.layers,
       details: this.details,
-      labels: this.labels
+      // Only include labels if they exist and are being used
+      ...(this.labels && {
+        labels: this.labels
+      })
     };
 
     const blob = new Blob([JSON.stringify(modelData)], {
@@ -479,13 +482,16 @@ class carbono {
       const content = await readFile(file);
       const modelData = JSON.parse(content);
 
-      Object.assign(this, {
-        weights: modelData.weights,
-        biases: modelData.biases,
-        layers: modelData.layers,
-        details: modelData.details,
-        labels: modelData.labels
-      });
+      // Load core properties
+      this.weights = modelData.weights;
+      this.biases = modelData.biases;
+      this.layers = modelData.layers;
+      this.details = modelData.details;
+
+      // Only load labels if they exist in the saved model
+      if (modelData.labels) {
+        this.labels = modelData.labels;
+      }
 
       this.debug && console.log("✅ Model loaded successfully!");
       callback?.();
