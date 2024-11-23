@@ -1,6 +1,12 @@
 # carbono
 
-carbono is a micro-library that provides a simple and easy-to-use interface for building and training Feed-Forward neural networks all in just less than 1000 lines of code. If you don't want to code, you can also take a look at the [playground](https://huggingface.co/spaces/appvoid/carbono), try training your first model there. You can also check the [examples](https://github.com/appvoid/carbono/blob/main/examples.md) to get some boilerplate.
+> changelog
+> - v4: optimized save/load handling for new json-based extension name ".uai"
+> - v3: adam optmizer, a complete code rewrite for maintainance purposes (official release)
+> - v2: softmax, cross-entropy and labels for classifications
+> - v1: first release
+
+carbono is a micro-library with a simple api to build and train feed-forward neural networks within 500 lines of code. Take a look at the [playground](https://huggingface.co/spaces/appvoid/carbono) and try training your first model. Also check some [examples](https://github.com/appvoid/carbono/blob/main/examples.md) to get familiar with this library.
 
 #### Features
 
