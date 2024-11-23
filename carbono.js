@@ -11,7 +11,6 @@ class carbono {
     this.weights = [];
     this.biases = [];
     this.details = {};
-    this.labels = null;
     this.debug = debug;
   }
 
@@ -340,6 +339,7 @@ class carbono {
   }
 
   #preprocessLabels(trainSet) {
+    // Initialize labels property only when needed for classification
     const uniqueLabels = Array.from(
       new Set(
         trainSet
@@ -348,6 +348,7 @@ class carbono {
       )
     );
 
+    // Set labels property only when preprocessing labels
     this.labels = uniqueLabels;
 
     if (this.layers.length === 0) {
