@@ -1,3 +1,7 @@
+### Introduction
+
+These are some basic examples you can try. Keep in mind that some might not work due to the fast-paced working manner i'm approaching on this project, I will try to update this as much as possible though.
+
 ## Simple example
 
 ```javascript
