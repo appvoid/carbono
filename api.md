@@ -1,5 +1,3 @@
-Here's an updated API guide that more accurately reflects the `carbono` class implementation:
-
 ## Class: `carbono`
 
 ### Constructor
