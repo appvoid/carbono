@@ -1,3 +1,10 @@
+/* 
+*  this is a complete example of an standard feed-forward neural network
+*  ideally, in the future, this class should be sufficient to handle general use-case scenarios
+*  as well as becoming a supportive, general-purpose engine for training and inference
+*  on most popular frameworks' models out there - having said that, be warned, as most indie oss projects, 
+*  this is not by any means stable yet, even though the tool will improve over time, use at your own risk.
+*/ 
 class carbono {
   constructor(debug = true) {
     this.layers = [];
