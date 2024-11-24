@@ -328,14 +328,17 @@ class carbono {
       delete this.bias_m;
       delete this.bias_v;
     }
-
+    
     // Returns metadata
-    return this.#generateTrainingSummary(start, Date.now(), {
+    const summary = this.#generateTrainingSummary(start, Date.now(), {
       epochs,
       learningRate,
       lastTrainLoss,
       lastTestLoss
     });
+    
+    this.details = summary;
+    return summary;
   }
 
   #preprocessLabels(trainSet) {
