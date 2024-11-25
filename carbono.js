@@ -10,7 +10,6 @@ class carbono {
     this.weights = [];
     this.biases = [];
     this.details = {};
-    this.debug = debug;
   }
 
   // Utility Methods
@@ -252,7 +251,7 @@ class carbono {
 
     if (typeof trainSet[0].output === "string" ||
       (Array.isArray(trainSet[0].output) && typeof trainSet[0].output[0] === "string")) {
-      trainSet = this.#preprocessLabels(trainSet);
+      trainSet = this.#preprocesstags(trainSet);
     }
 
     const start = Date.now();
@@ -345,9 +344,9 @@ class carbono {
     return summary;
   }
 
-  #preprocessLabels(trainSet) {
-    // Initialize labels property only when needed for classification
-    const uniqueLabels = Array.from(
+  #preprocesstags(trainSet) {
+    // Initialize tags property only when needed for classification
+    const uniquetags = Array.from(
       new Set(
         trainSet
         .map(item => Array.isArray(item.output) ? item.output : [item.output])
@@ -355,21 +354,21 @@ class carbono {
       )
     );
 
-    // Set labels property only when preprocessing labels
-    this.labels = uniqueLabels;
+    // Set tags property only when preprocessing tags
+    this.tags = uniquetags;
 
     if (this.layers.length === 0) {
       const numInputs = trainSet[0].input.length;
-      const numClasses = uniqueLabels.length;
+      const numClasses = uniquetags.length;
       this.layer(numInputs, Math.ceil((numInputs + numClasses) / 2), "tanh");
       this.layer(Math.ceil((numInputs + numClasses) / 2), numClasses, "softmax");
     }
 
     return trainSet.map(item => ({
       input: item.input,
-      output: uniqueLabels.map(label =>
+      output: uniquetags.map(tag =>
         (Array.isArray(item.output) ? item.output : [item.output])
-        .includes(label) ? 1 : 0
+        .includes(tag) ? 1 : 0
       )
     }));
   }
@@ -393,19 +392,14 @@ class carbono {
     );
 
     return {
-      trainLoss: lastTrainLoss,
-      testLoss: lastTestLoss,
       parameters: totalParams,
       training: {
+        loss: lastTrainLoss,
+        testloss: lastTestLoss,
         time: end - start,
         epochs,
         learningRate,
       },
-      layers: this.layers.map(layer => ({
-        inputSize: layer.inputSize,
-        outputSize: layer.outputSize,
-        activation: layer.activation,
-      })),
     };
   }
 
@@ -416,12 +410,12 @@ class carbono {
     } = this.#forwardPropagate(input);
     const output = layerInputs[layerInputs.length - 1];
 
-    if (this.labels &&
+    if (this.tags &&
       this.layers[this.layers.length - 1].activation === "softmax" &&
       tags) {
       return output
         .map((prob, idx) => ({
-          label: this.labels[idx],
+          tag: this.tags[idx],
           probability: prob,
         }))
         .sort((a, b) => b.probability - a.probability);
@@ -429,16 +423,30 @@ class carbono {
 
     return output;
   }
-
   async save(name = "model") {
+    if (!this.details.info) {
+      this.details.info = {
+        name: name,
+        author: '',
+        license: 'MIT',
+        note: '',
+        date: new Date()
+          .toISOString()
+      };
+    }
+
+    // If no custom name is set, use the save parameter
+    if (this.details.info.name === 'Untitled Model') {
+      this.details.info.name = name;
+    }
+
     const modelData = {
       weights: this.weights,
       biases: this.biases,
       layers: this.layers,
       details: this.details,
-      // Include labels if they exist and are being used
-      ...(this.labels && {
-        labels: this.labels
+      ...(this.tags && {
+        tags: this.tags
       })
     };
 
@@ -450,7 +458,7 @@ class carbono {
     try {
       const link = Object.assign(document.createElement('a'), {
         href: downloadUrl,
-        download: `${name}.uai`,
+        download: `${this.details.info.name}.uai`,
         style: 'display: none'
       });
 
@@ -462,7 +470,11 @@ class carbono {
   }
 
   async load(callback) {
-    const createFileInput = () => Object.assign(document.createElement('input'), { type: 'file', accept: '.uai',  style: 'display: none' });
+    const createFileInput = () => Object.assign(document.createElement('input'), {
+      type: 'file',
+      accept: '.uai',
+      style: 'display: none'
+    });
     const readFile = file => new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = e => resolve(e.target.result);
@@ -488,10 +500,14 @@ class carbono {
       this.weights = modelData.weights;
       this.biases = modelData.biases;
       this.layers = modelData.layers;
-      this.details = modelData.details;
 
-      if (modelData.labels)
-        this.labels = modelData.labels;
+      // Ensure details and info exist
+      this.details = modelData.details || {
+        info: {}
+      };
+
+      if (modelData.tags)
+        this.tags = modelData.tags;
 
       this.debug && console.log("✅ Model loaded successfully!");
       callback?.();
@@ -502,5 +518,9 @@ class carbono {
       document.querySelector('input[type="file"]')
         ?.remove();
     }
+  }
+
+  info(infoUpdates) {
+    this.details.info = infoUpdates
   }
 }
