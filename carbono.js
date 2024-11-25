@@ -242,6 +242,10 @@ class carbono {
 
   // Training
   async train(trainSet, options = {}) {
+    // Fallback property addition when training a loaded model
+    if (!('debug' in this)) {
+      this.debug = true; // or any default value you want to set
+    }
     const {
       epochs = 200, learningRate = 0.212, printEveryEpochs = 100, earlyStopThreshold = 1e-6, testSet = null, callback = null, optimizer = "sgd", lossFunction = "mse"
     } = options;
@@ -321,14 +325,14 @@ class carbono {
       }
     }
 
-    // Clean up Adam optimizer variables if they exist
+    // Clean up Adam optimizer variables
     if (optimizer === 'adam') {
       delete this.weight_m;
       delete this.weight_v;
       delete this.bias_m;
       delete this.bias_v;
     }
-    
+
     // Returns metadata
     const summary = this.#generateTrainingSummary(start, Date.now(), {
       epochs,
@@ -336,7 +340,7 @@ class carbono {
       lastTrainLoss,
       lastTestLoss
     });
-    
+
     this.details = summary;
     return summary;
   }
@@ -458,12 +462,7 @@ class carbono {
   }
 
   async load(callback) {
-    const createFileInput = () => Object.assign(document.createElement('input'), {
-      type: 'file',
-      accept: '.uai',
-      style: 'display: none'
-    });
-
+    const createFileInput = () => Object.assign(document.createElement('input'), { type: 'file', accept: '.uai',  style: 'display: none' });
     const readFile = file => new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = e => resolve(e.target.result);
@@ -491,15 +490,15 @@ class carbono {
       this.layers = modelData.layers;
       this.details = modelData.details;
 
-      if (modelData.labels) {
+      if (modelData.labels)
         this.labels = modelData.labels;
-      }
 
       this.debug && console.log("✅ Model loaded successfully!");
       callback?.();
     } catch (error) {
       this.debug && console.error("❌ Failed to load model:", error);
     } finally {
+      delete this.debug
       document.querySelector('input[type="file"]')
         ?.remove();
     }
