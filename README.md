@@ -1,7 +1,7 @@
 ### carbono
 
 > changelog
-> - v5: better organized metadata, new metadata fields added as well; removed unnecesary "layers" metadata
+> - v5: new metadata fields added; removed unnecesary "layers" metadata
 > - v4: optimized save/load handling for new json-based extension name ".uai"
 > - v3: adam optmizer, a complete code rewrite for maintainance purposes (official release)
 > - v2: softmax, cross-entropy and labels for classifications
