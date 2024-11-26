@@ -8,6 +8,7 @@ const nn = new carbono(debug = true);
 ```
 - `debug`: Enable/disable console logging (default: true)
 
+**Returns:** `this`
 ## Core Methods
 
 ### Adding Layers
