@@ -1,8 +1,8 @@
-# carbono: Unified AI (UAI) Specification v1.0
+# Unified AI (UAI) Specification v1.0
 
 ## Core Definition
 
-`carbono` is a lightweight, browser-compatible neural network implementation designed for accessibility and ease of use. It provides a unified interface for training, inference, and model management.
+`carbono` is a lightweight, browser-compatible neural network implementation designed for accessibility and ease of use. It provides a unified interface for training, inference, and model management. On the other hand, UAI is an effort to push interest into a common web standard for feed-forward neural networks management on web browsers.
 
 ## Key Components
 
