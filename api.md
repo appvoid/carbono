@@ -1,5 +1,5 @@
 # Overview
-Carbono is a lightweight neural network library for JavaScript that supports both classification and regression tasks with multiple activation functions, optimizers, and loss functions.
+carbono is a lightweight neural network library for JavaScript that supports both classification and regression tasks with multiple activation functions, optimizers, and loss functions.
 
 ## New Instance
 ```javascript
@@ -18,6 +18,7 @@ nn.layer(inputSize, outputSize, activation)
 - `outputSize`: Number of output neurons  
 - `activation`: Activation function ("tanh", "sigmoid", "relu", "selu", "softmax")
 
+**Returns:** `this`
 ### Training
 ```javascript
 await nn.train(trainSet, options)
