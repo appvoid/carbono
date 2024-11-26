@@ -15,11 +15,7 @@ a micro-library with a simple api to build and train feed-forward neural network
 ```
 
 ```javascript
-const nn = new carbono()
-const dataset = [{input: [0], output: [1]}, {input: [1], output: [0]}]
-nn.train(dataset).then(()=>{
-  console.log(nn.predict([0])) // should return a number near to [1]  
-})
+new carbono().layer(2,1).train([{ input:[1,1], output:[0] }])
 ```
 
 > if you need help, you can reach to me as @apppvoidofficial on X, you can also find me on tinyllama discord server sometimes.
