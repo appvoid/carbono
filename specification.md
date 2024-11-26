@@ -69,26 +69,6 @@ class carbono {
 - Numerical stability checks
 - Graceful fallbacks
 
-## Usage Example
-
-```javascript
-const model = new carbono();
-
-// Layer configuration
-model.layer(inputSize, hiddenSize, "tanh")
-     .layer(hiddenSize, outputSize, "softmax");
-
-// Training
-await model.train(dataset, {
-  epochs: 10,
-  learningRate: 0.212,
-  optimizer: "adam"
-});
-
-// Inference
-const prediction = model.predict(input);
-```
-
 ## File Format (.uai)
 
 Unified AI format is a simple JSON string with at least the following properties:
