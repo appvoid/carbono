@@ -248,7 +248,7 @@ class carbono {
       this.debug = true; // or any default value you want to set
     }
     const {
-      epochs = 200, learningRate = 0.212, printEveryEpochs = 100, earlyStopThreshold = 1e-6, testSet = null, callback = null, optimizer = "sgd", lossFunction = "mse"
+      epochs = 10, learningRate = 0.212, printEveryEpochs = 1, earlyStopThreshold = 1e-6, testSet = null, callback = null, optimizer = "sgd", lossFunction = "mse"
     } = options;
 
     if (typeof trainSet[0].output === "string" ||
