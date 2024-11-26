@@ -1,6 +1,6 @@
 ### Introduction
 
-carbono is built in such a way that it abstracts away managing feed-forward networks, in fact, you might say it's a web specification for machine learning given how easy it is to make it work with any [technology](hptts://google)
+carbono is built in such a way that it abstracts away managing feed-forward networks, in fact, you might say it's a web specification for machine learning given how easy it is to make it work with any [technology](https://github.com/appvoid/carbono/blob/main/carbono.ipynb).
 
 These are some basic examples you can try. Keep in mind that some might not work due to the fast-paced working manner i'm approaching on this project, I will try to update this as much as possible though.
 
