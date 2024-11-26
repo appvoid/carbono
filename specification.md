@@ -18,6 +18,9 @@ class carbono {
 }
 ```
 
+- `layers` must contain, number of input and output nodes as reference as well as its activation function.
+- `details` might contain any useful information for the end user.
+
 ### 2. Core Operations
 
 #### Layer Management
