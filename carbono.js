@@ -119,6 +119,8 @@ class carbono {
     this.weights.push(weights);
     this.biases.push(Array(outputSize)
       .fill(0.01));
+    
+    return this
   }
 
   // Forward Propagation
