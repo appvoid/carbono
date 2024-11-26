@@ -31,8 +31,8 @@ class carbono {
 - Gradient-based weight updates
 
 #### Optimization Methods
-- SGD (Stochastic Gradient Descent)
-- Adam optimizer with momentum
+- Sthocastic Gradient Descend
+- Adam with momentum (optional)
 
 ### 3. Supported Features
 
@@ -44,7 +44,7 @@ class carbono {
 - Softmax
 
 #### Loss Functions
-- Mean Squared Error (MSE)
+- Mean Squared Error
 - Cross-Entropy
 
 #### Model Persistence
@@ -91,6 +91,8 @@ const prediction = model.predict(input);
 
 ## File Format (.uai)
 
+Unified AI format is a simple JSON string with at least the following properties:
+
 ```javascript
 {
   weights: Float32Array[][],
@@ -104,6 +106,6 @@ const prediction = model.predict(input);
 ## Version Information
 - Specification Version: 1.0
 - Implementation Status: Beta
-- Last Updated: 2024
+- Last Updated: Mon 25 Nov, 2024
 
-This specification defines the core functionality and requirements for implementing the carbono UAI system, focusing on simplicity, accessibility, and browser compatibility.
+This specification defines the core functionality and requirements for implementing carbono's architecture and file format, focusing on simplicity, accessibility, and browser compatibility.
