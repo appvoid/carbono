@@ -1,4 +1,4 @@
-# Carbono: Unified AI (UAI) Specification v1.0
+# carbono: Unified AI (UAI) Specification v1.0
 
 ## Core Definition
 
