@@ -1,5 +1,5 @@
 /* 
- *  this is a complete example of an standard feed-forward neural network and ideally, in the future, this self-contained mdoel is 
+ *  this is a complete example of a standard feed-forward neural network and ideally, in the future, this self-contained model is planned to be 
  *  sufficient to handle general use-case scenarios as well as becoming a supportive, general-purpose engine for training as well as 
  *  inference on most popular frameworks' models out there - having said that, be warned, as most of my indie open source projects, 
  *  this is not by any means stable yet, even though i'm expecting the tool to be improved over time, you must use it at your own risk.
