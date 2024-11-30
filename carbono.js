@@ -468,7 +468,7 @@ async save(name = "model") {
 
   // Convert metadata to string and create binary data
   const metadataString = JSON.stringify(metadata);
-  const separator = '\n---carbono_v6---\n';
+  const separator = '\n---BINARY_SEPARATOR---\n';
   
   // Create concatenated binary data
   const binaryData = new Uint8Array([
@@ -525,7 +525,7 @@ async load(callback) {
     const dataView = new Uint8Array(fileContent);
     
     // Find the separator position
-    const separator = '\n---carbono_v6---\n';
+    const separator = '\n---BINARY_SEPARATOR---\n';
     const separatorBytes = new TextEncoder().encode(separator);
     let separatorIndex = -1;
     
