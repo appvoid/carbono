@@ -1,6 +1,7 @@
 ### carbono
 
 > changelog
+> - v6: dramatically optimized file size; a 18k parameters model was reduced from 376kb to just 73kb (~80% reduction)
 > - v5: new metadata fields added; removed unnecesary "layers" metadata
 > - v4: optimized save/load handling for new json-based extension name ".uai"
 > - v3: adam optmizer, a complete code rewrite for maintainance purposes (official release)
