@@ -525,7 +525,7 @@ async load(callback) {
     const dataView = new Uint8Array(fileContent);
     
     // Find the separator position
-    const separator = '\n---carbono_v5---\n';
+    const separator = '\n---carbono_v6---\n';
     const separatorBytes = new TextEncoder().encode(separator);
     let separatorIndex = -1;
     
