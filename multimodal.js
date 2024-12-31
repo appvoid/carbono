@@ -2,13 +2,12 @@
 
 class carbono {
   constructor(debug = true) {
-    this.layers = [];
-    this.weights = [];
-    this.biases = [];
-    this.details = {};
-    this.debug = debug;
-    this.embeddings = 2048; // Fixed embedding size for all inputs (e.g., 28x28 = 784)
-  }
+      this.layers = [];
+      this.weights = [];
+      this.biases = [];
+      this.details = {};
+      this.debug = debug;
+    }
 
   async preprocessData(input) {
     if (typeof input === 'string' && this.#isUrl(input)) {
@@ -18,7 +17,6 @@ class carbono {
           throw new Error(`Failed to fetch data from ${input}: ${response.statusText}`);
         }
 
-        // Infer content type from the URL if the header is binary/octet-stream
         const contentType = response.headers.get('Content-Type');
         const inferredType = this.#inferContentType(input, contentType);
 
@@ -36,7 +34,6 @@ class carbono {
         throw error;
       }
     } else {
-      // If it's not a URL, assume it's already preprocessed
       return input;
     }
   }
@@ -51,14 +48,12 @@ class carbono {
   }
 
   #inferContentType(url, contentType) {
-    // If the Content-Type is not binary/octet-stream, use it directly
     if (contentType && !contentType.includes('binary/octet-stream')) {
       if (contentType.startsWith('image/')) return 'image';
       if (contentType.startsWith('audio/')) return 'audio';
       if (contentType.startsWith('text/')) return 'text';
     }
 
-    // Infer type from the file extension in the URL
     const extension = url.split('.').pop().toLowerCase();
     if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].includes(extension)) {
       return 'image';
@@ -68,7 +63,6 @@ class carbono {
       return 'text';
     }
 
-    // Default to binary/octet-stream
     throw new Error(`Unable to infer content type for ${url}`);
   }
 
@@ -82,14 +76,12 @@ class carbono {
         img.onerror = () => reject(new Error('Failed to load image'));
       });
 
-      // Resize image to a fixed resolution (e.g., 28x28)
       const canvas = document.createElement('canvas');
       canvas.width = 28;
       canvas.height = 28;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, 28, 28);
 
-      // Flatten the image into a 1D array
       const pixels = ctx.getImageData(0, 0, 28, 28).data;
       const normalizedPixels = Array.from(pixels).map(val => val / 255);
       return normalizedPixels;
@@ -98,126 +90,79 @@ class carbono {
       throw error;
     }
   }
-async #preprocessAudio(response) {
-  try {
-    // Convert the response to an array buffer
-    const arrayBuffer = await response.arrayBuffer();
-    // this.debug && console.log('ArrayBuffer obtained from response:', arrayBuffer);
 
-    // Create an offline audio context
-    const offlineContext = new OfflineAudioContext(2, 2048, 44100);
+  async #preprocessAudio(response) {
+    try {
+      const arrayBuffer = await response.arrayBuffer();
+      const offlineContext = new OfflineAudioContext(2, 2048, 44100);
+      const sourceNode = offlineContext.createBufferSource();
+      sourceNode.connect(offlineContext.destination);
+      const audioBuffer = await offlineContext.decodeAudioData(arrayBuffer);
+      const analyser = offlineContext.createAnalyser();
+      analyser.fftSize = 2048;
+      analyser.minDecibels = -90;
+      analyser.maxDecibels = -10;
+      analyser.smoothingTimeConstant = 0.8;
 
-    // Create a source node
-    const sourceNode = offlineContext.createBufferSource();
-    sourceNode.connect(offlineContext.destination);
+      sourceNode.connect(analyser);
+      analyser.connect(offlineContext.destination);
+      sourceNode.buffer = audioBuffer;
+      sourceNode.start();
 
-    // Decode the audio data
-    const audioBuffer = await offlineContext.decodeAudioData(arrayBuffer);
-    // this.debug && console.log('AudioBuffer decoded:', audioBuffer);
+      await offlineContext.startRendering();
+      const frequencyData = new Uint8Array(analyser.frequencyBinCount);
+      analyser.getByteFrequencyData(frequencyData);
+      const averagedFrequencyData = frequencyData.slice(0);
+      const normalizedFrequencyData = Array.from(averagedFrequencyData).map(val => val / 255);
 
-    // Create an analyser node
-    const analyser = offlineContext.createAnalyser();
-    analyser.fftSize = 2048; // Increase FFT size for better frequency resolution
-    analyser.minDecibels = -90;
-    analyser.maxDecibels = -10;
-    analyser.smoothingTimeConstant = 0.8;
-    // this.debug && console.log('Analyser node created:', analyser);
-
-    // Connect the source node to the analyser and then to the destination
-    sourceNode.connect(analyser);
-    analyser.connect(offlineContext.destination);
-
-    // Set the audio buffer
-    sourceNode.buffer = audioBuffer;
-
-    // Start the source node
-    sourceNode.start();
-
-    // Render the audio
-    const renderedAudioBuffer = await offlineContext.startRendering();
-
-    // Create a Uint8Array to hold the frequency data
-    const frequencyData = new Uint8Array(analyser.frequencyBinCount);
-    // this.debug && console.log('Frequency data array created:', frequencyData);
-
-    // Get the frequency data
-    analyser.getByteFrequencyData(frequencyData);
-    // this.debug && console.log('Frequency data obtained:', frequencyData);
-
-    // Average the frequency data (assuming a single capture)
-    const averagedFrequencyData = frequencyData.slice(0);
-    // this.debug && console.log('Averaged frequency data:', averagedFrequencyData);
-
-    // Normalize the frequency data
-    const normalizedFrequencyData = Array.from(averagedFrequencyData).map(val => val / 255);
-    // this.debug && console.log('Normalized frequency data:', normalizedFrequencyData);
-
-    // Pad or truncate to fixed size
-    function padOrTruncate(data, size) {
-      if (data.length > size) {
-        return data.slice(0, size);
-      } else {
-        const paddedData = new Array(size).fill(0);
-        paddedData.splice(0, data.length, ...data);
-        return paddedData;
-      }
+      // Use the first layer's input size for padding/truncating
+      const targetSize = this.layers[0]?.inputSize || frequencyData.length;
+      return this.#padOrTruncate(normalizedFrequencyData, targetSize);
+    } catch (error) {
+      console.error('Error preprocessing audio:', error);
+      throw error;
     }
-    const fixedSizeData = padOrTruncate(normalizedFrequencyData, this.embeddings);
-    // this.debug && console.log('Normalized and fixed size frequency data:', fixedSizeData);
-
-    return fixedSizeData;
-  } catch (error) {
-    console.error('Error preprocessing audio:', error);
-    throw error;
   }
-}
-async #preprocessText(response) {
-  try {
-    const text = await response.text();
 
-    // Step 1: Tokenize and clean the text
-    const words = text
-      .toLowerCase()
-      .replace(/[^\w\s]/g, '') // Remove punctuation
-      .split(/\s+/) // Split into words
-      .filter(word => word.length > 0); // Remove empty strings
+  async #preprocessText(response) {
+    try {
+      const text = await response.text();
+      const words = text
+        .toLowerCase()
+        .replace(/[^\w\s]/g, '')
+        .split(/\s+/)
+        .filter(word => word.length > 0);
 
-    // Step 2: Use TF-IDF or word embeddings for better representation
-    const wordFrequencies = {};
-    words.forEach(word => wordFrequencies[word] = (wordFrequencies[word] || 0) + 1);
+      const wordFrequencies = {};
+      words.forEach(word => wordFrequencies[word] = (wordFrequencies[word] || 0) + 1);
 
-    // Step 3: Calculate TF-IDF (Term Frequency-Inverse Document Frequency)
-    const totalWords = words.length;
-    const uniqueWords = Object.keys(wordFrequencies);
-    const idf = {}; // Inverse Document Frequency (placeholder for actual IDF values)
+      const totalWords = words.length;
+      const uniqueWords = Object.keys(wordFrequencies);
+      const idf = {};
+      uniqueWords.forEach(word => idf[word] = Math.log(totalWords / (wordFrequencies[word] + 1)));
 
-    // For simplicity, assume IDF is precomputed or use a fixed value
-    uniqueWords.forEach(word => idf[word] = Math.log(totalWords / (wordFrequencies[word] + 1)));
+      const tfidfVector = uniqueWords.map(word => {
+        const tf = wordFrequencies[word] / totalWords;
+        return tf * idf[word];
+      });
 
-    // Step 4: Create a TF-IDF vector
-    const tfidfVector = uniqueWords.map(word => {
-      const tf = wordFrequencies[word] / totalWords; // Term Frequency
-      return tf * idf[word]; // TF-IDF
-    });
-
-    // Step 5: Pad or truncate to fixed size
-    const fixedSizeVector = this.#padOrTruncate(tfidfVector, this.embeddings);
-    return fixedSizeVector;
-  } catch (error) {
-    console.error('Error preprocessing text:', error);
-    throw error;
+      // Use the first layer's input size for padding/truncating
+      const targetSize = this.layers[0]?.inputSize || tfidfVector.length;
+      return this.#padOrTruncate(tfidfVector, targetSize);
+    } catch (error) {
+      console.error('Error preprocessing text:', error);
+      throw error;
+    }
   }
-}
 
   #padOrTruncate(data, targetSize) {
     if (data.length > targetSize) {
-      return data.slice(0, targetSize); // Truncate
+      return data.slice(0, targetSize);
     } else if (data.length < targetSize) {
-      return data.concat(Array(targetSize - data.length).fill(0)); // Pad with zeros
+      return data.concat(Array(targetSize - data.length).fill(0));
     }
     return data;
   }
-
   async trainFromUrls(trainSetUrls, options = {}) {
     try {
       // Convert URLs to preprocessed data
@@ -833,27 +778,7 @@ async #preprocessText(response) {
 
 // Example usage
 const model = new carbono();
-
-// Define the model architecture
-model.layer(784, 32, 'selu'); // Example for 28x28 images flattened to 784 inputs
-model.layer(32, 16, 'selu');
-model.layer(16, 10, 'softmax'); // Output layer for 10 classes
-
-// Prepare the training data with URLs
-const trainSetUrls = [
-  { url: 'https://cdn.pixabay.com/photo/2024/01/29/20/40/cat-8540772_1280.jpg', output: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
-  { url: 'https://cdn.jsdelivr.net/gh/lunu-bounir/audio-equalizer/test/left.ogg', output: [0, 1, 0, 0, 0, 0, 0, 0, 0, 0] },
-  { url: 'https://raw.githubusercontent.com/appvoid/carbono/refs/heads/main/examples.md', output: [0, 0, 1, 0, 0, 0, 0, 0, 0, 0] }
-];
-
-// Train the model
-model.trainFromUrls(trainSetUrls, {
-  epochs: 12,
-  learningRate: 0.1,
-  printEveryEpochs: 2,
-  lossFunction: 'cross-entropy'
-}).then(summary => {
-  model.predict('https://raw.githubusercontent.com/appvoid/carbono/refs/heads/main/examples.md').then(prediction => {
+model.load(()=>{
+  model.predict('https://cdn.pixabay.com/photo/2024/01/29/20/40/cat-8540772_1280.jpg').then(prediction => {
   console.log('Prediction:', prediction);
-});
 });
