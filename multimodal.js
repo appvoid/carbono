@@ -784,24 +784,22 @@ const model = new carbono();
 // });
 // })
 // Define the model architecture
-model.layer(784, 32, 'selu'); // Example for 28x28 images flattened to 784 inputs
-model.layer(32, 16, 'selu');
-model.layer(16, 3, 'softmax'); // Output layer for classes
+model.layer(784, 32, 'sigmoid');
+model.layer(32, 3, 'softmax');
 
 // Prepare the training data with URLs
 const trainSetUrls = [
   { url: 'https://cdn.pixabay.com/photo/2024/01/29/20/40/cat-8540772_1280.jpg', output: 'image'},
-  
   { url: 'https://cdn.jsdelivr.net/gh/lunu-bounir/audio-equalizer/test/left.ogg', output: 'audio'},
       { url: 'https://raw.githubusercontent.com/appvoid/carbono/refs/heads/main/examples.md', output: 'code' },
 ];
 
 // Train the model
 model.trainFromUrls(trainSetUrls, {
-  epochs: 12,
+  epochs: 10,
+  optimizer: 'adam',
   learningRate: 0.1,
   printEveryEpochs: 2,
-  lossFunction: 'cross-entropy'
 }).then(summary => {
   model.predict('https://cdn.pixabay.com/photo/2024/01/29/20/40/cat-8540772_1280.jpg').then(prediction => {
   console.log('Prediction:', prediction);
