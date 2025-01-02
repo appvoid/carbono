@@ -77,12 +77,12 @@ class carbono {
       });
 
       const canvas = document.createElement('canvas');
-      canvas.width = 28;
-      canvas.height = 28;
+      canvas.width = 32;
+      canvas.height = 32;
       const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, 28, 28);
+      ctx.drawImage(img, 0, 0, 32, 32);
 
-      const pixels = ctx.getImageData(0, 0, 28, 28).data;
+      const pixels = ctx.getImageData(0, 0, 32, 32).data;
       const normalizedPixels = Array.from(pixels).map(val => val / 255);
       return normalizedPixels;
     } catch (error) {
@@ -824,19 +824,23 @@ async train(trainSet, options = {}) {
 // Example usage
 const model = new carbono();
 // model.load(()=>{
-//   model.predict('https://cdn.pixabay.com/photo/2024/01/29/20/40/cat-8540772_1280.jpg').then(prediction => {
+//   model.predict('https://raw.githubusercontent.com/appvoid/carbono/refs/heads/main/examples.md').then(prediction => {
 //   console.log('Prediction:', prediction);
 // });
 // })
 // Define the model architecture
-model.layer(784, 32, 'sigmoid');
-model.layer(32, 3, 'softmax');
+model.layer(1024, 24, 'sigmoid');
+model.layer(24, 4, 'softmax');
 
 // Prepare the training data with URLs
 const trainSetUrls = [
-  { url: 'https://cdn.pixabay.com/photo/2024/01/29/20/40/cat-8540772_1280.jpg', output: 'image'},
-  { url: 'https://cdn.jsdelivr.net/gh/lunu-bounir/audio-equalizer/test/left.ogg', output: 'audio'},
-      { url: 'https://raw.githubusercontent.com/appvoid/carbono/refs/heads/main/examples.md', output: 'code' },
+  { url: 'https://cdn.pixabay.com/photo/2018/03/31/06/31/dog-3277416_1280.jpg', output: 'a dog'},
+  { url: 'https://cdn.pixabay.com/photo/2024/01/29/20/40/cat-8540772_1280.jpg', output: 'a cat'},
+  { url: 'https://cdn.pixabay.com/photo/2014/11/30/14/11/cat-551554_1280.jpg', output: 'a cat'},
+  { url: 'https://cdn.jsdelivr.net/gh/lunu-bounir/audio-equalizer/test/left.ogg', output: 'audio test'},
+      { url: 'https://raw.githubusercontent.com/appvoid/carbono/refs/heads/main/examples.md', output: 'some code' },
+
+        { url: 'https://cdn.pixabay.com/photo/2016/03/27/18/54/technology-1283624_1280.jpg', output: 'some code' },
 ];
 
 // Train the model
@@ -846,9 +850,8 @@ model.train(trainSetUrls, {
   learningRate: 0.1,
   printEveryEpochs: 2,
 }).then(summary => {
-  model.predict('https://cdn.pixabay.com/photo/2024/01/29/20/40/cat-8540772_1280.jpg').then(prediction => {
+  model.predict('https://cdn.pixabay.com/photo/2022/12/22/02/56/dog-7671355_1280.jpg').then(prediction => {
   console.log('Prediction:', prediction);
     // console.log(model)
     // model.save()
-});
 });
