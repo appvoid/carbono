@@ -413,8 +413,53 @@ class carbono {
     }
   }
 
+async train(trainSet, options = {}) {
+    if (!('debug' in this)) {
+        this.debug = true;
+    }
+    
+    const {
+        epochs = 10, 
+        learningRate = 0.212, 
+        printEveryEpochs = 1, 
+        earlyStopThreshold = 1e-6, 
+        testSet = null, 
+        callback = null, 
+        optimizer = "sgd", 
+        lossFunction = "mse"
+    } = options;
+
+    // Preprocess the training set to handle URLs
+    const processedTrainSet = await Promise.all(trainSet.map(async data => {
+        try {
+            // If the data has a URL, preprocess it
+            if (data.url) {
+                const processedInput = await this.preprocessData(data.url);
+                return { input: processedInput, output: data.output };
+            }
+            // If data already has numerical input, use it directly
+            return { input: data.input, output: data.output };
+        } catch (error) {
+            console.error(`Error preprocessing data:`, error);
+            throw error;
+        }
+    }));
+
+    // Process string outputs into one-hot encoded format if needed
+    if (typeof processedTrainSet[0].output === "string" ||
+        (Array.isArray(processedTrainSet[0].output) && 
+         typeof processedTrainSet[0].output[0] === "string")) {
+        return this.#trainWithPreprocessedData(
+            this.#preprocesstags(processedTrainSet),
+            options
+        );
+    }
+
+    return this.#trainWithPreprocessedData(processedTrainSet, options);
+}
+  
   // Training
-  async train(trainSet, options = {}) {
+  async #trainWithPreprocessedData(trainSet, options) {
     // Fallback property addition when training a loaded model
     if (!('debug' in this)) {
       this.debug = true; // or any default value you want to set
@@ -795,7 +840,7 @@ const trainSetUrls = [
 ];
 
 // Train the model
-model.trainFromUrls(trainSetUrls, {
+model.train(trainSetUrls, {
   epochs: 10,
   optimizer: 'adam',
   learningRate: 0.1,
