@@ -1,4 +1,5 @@
 // This is an experimental version of carbono that supports text, images and audio as inputs through urls
+// This one is not fully compatible yet to the pytorch implementation
 
 class carbono {
   constructor(debug = true) {
