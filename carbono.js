@@ -119,7 +119,6 @@ class carbono {
     this.weights.push(weights);
     this.biases.push(Array(outputSize)
       .fill(0.01));
-    
     return this
   }
 
@@ -584,6 +583,7 @@ async load(callback) {
     this.layers = metadata.layers;
     this.details = metadata.details;
     if (metadata.tags) this.tags = metadata.tags;
+    if (metadata.labels) this.tags = metadata.labels; // ensures compatibility with v5 and below
 
     this.debug && console.log("✅ Model loaded successfully!");
     callback?.();
