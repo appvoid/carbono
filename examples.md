@@ -39,6 +39,120 @@ nn.load(() => {
 
 Note: Ensure that you're running this in an environment where file operations are supported (e.g., a web browser) for the save and load functionality to work properly.
 
+## Language Model example
+
+```javascript
+// New vocabulary and tokenization functions
+function createVocabulary(texts) {
+  const vocab = new Set(['<pad>', '<endoftext>']);
+  texts.forEach(text => {
+    text.split(' ').forEach(word => vocab.add(word));
+  });
+  return Array.from(vocab);
+}
+
+function tokenize(text, vocab) {
+  return text.split(' ').map(word => vocab.indexOf(word));
+}
+
+function generateTrainingData(texts, vocab, contextSize = 8) {
+  const trainingData = [];
+  
+  texts.forEach(text => {
+    const tokens = tokenize(text, vocab);
+    const padToken = vocab.indexOf('<pad>');
+    const eotToken = vocab.indexOf('<endoftext>');
+    
+    // Pad the sequence
+    const paddedTokens = [
+      ...Array(contextSize).fill(padToken),
+      ...tokens,
+      eotToken
+    ];
+    
+    // Generate training pairs
+    for (let i = contextSize; i < paddedTokens.length; i++) {
+      const context = paddedTokens.slice(i - contextSize, i);
+      const target = paddedTokens[i];
+      
+      // Convert target to one-hot encoding
+      const targetOneHot = Array(vocab.length).fill(0);
+      targetOneHot[target] = 1;
+      
+      trainingData.push({
+        input: context,
+        output: targetOneHot
+      });
+    }
+  });
+  
+  return trainingData;
+}
+
+// Example usage
+const texts = [
+  "the cat sat on the mat",
+  "the dog ran in the park",
+  "a bird flew over the tree",
+  "she walked through the garden"
+];
+
+// Create vocabulary
+const vocab = createVocabulary(texts);
+console.log("Vocabulary size:", vocab.length);
+
+// Generate training data
+const trainSet = generateTrainingData(texts, vocab);
+
+// Create neural network
+const nn = new carbono(true);
+
+// Input layer (context size 8)
+nn.layer(8, 8, "relu")    // Input layer with 8 context words to 32 hidden units
+  .layer(8, vocab.length, "softmax"); // Output layer (vocab size)
+
+// Train the model
+nn.train(trainSet, {
+  epochs: 80,
+  learningRate: 0.01,
+  printEveryEpochs: 20,
+  optimizer: 'adam',
+  lossFunction: 'cross-entropy'
+}).then((summary) => {
+  // Test the model
+  function predictNextWord(context, vocab) {
+    const contextTokens = tokenize(context, vocab);
+    const padToken = vocab.indexOf('<pad>');
+    
+    // Pad context if needed
+    while (contextTokens.length < 8) {
+      contextTokens.unshift(padToken);
+    }
+    
+    // Take last 8 tokens if context is too long
+    const inputContext = contextTokens.slice(-8);
+    
+    const prediction = nn.predict(inputContext);
+    const predictedIndex = prediction.indexOf(Math.max(...prediction));
+    return vocab[predictedIndex];
+  }
+
+  // Test examples
+  const testCases = [
+    "the cat sat on",
+    "the dog ran",
+    "a bird"
+  ];
+
+  console.log("\nPredictions:");
+  testCases.forEach(context => {
+    const nextWord = predictNextWord(context, vocab);
+    console.log(`Context: "${context}"`);
+    console.log(`Predicted next word: "${nextWord}"\n`);
+  });
+});
+```
+
 ## Classification example
 
 ```javascript
