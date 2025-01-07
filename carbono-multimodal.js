@@ -1,8 +1,8 @@
 // this is a more recent version of carbono multimodal and hasn't been tested for training on js yet
 // this code can do inference from multimodal models exported from pytorch's multimodal notebook
-// currently, the model supports text and images, with audio still on the works
+// currently, the model supports text and images and audio
 
-// final version of carbono should be an easy to prototype, multimodal feedforward neural network framework
+// final version of carbono should be an easy to prototype, multimodal feedforward neural network framework (below 1k loc)
 // that lets you train gpu-powered models in any modality and lets you do inference and/or light finetuning on the browser
 
 class carbono {
@@ -129,67 +129,241 @@ async #preprocessImage(response) {
   return Array.from(normalized);
 }
 
-  async #preprocessAudio(response) {
+async #preprocessAudio(response) {
     try {
         const arrayBuffer = await response.arrayBuffer();
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        
-        // Decode audio data
         const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-        const audioData = audioBuffer.getChannelData(0); // Get first channel
         
-        // Create analyzer
-        const analyzer = audioContext.createAnalyser();
-        analyzer.fftSize = 2048;
+        // Match librosa defaults but keep the rest of the implementation simple
+        const sampleRate = 44100;
+        const duration = 5;
         
-        // Create temporary buffer source
-        const source = audioContext.createBufferSource();
-        source.buffer = audioBuffer;
+        // Get mono channel and resample
+        const audioData = this.#getMono(audioBuffer);
+        const resampledData = this.#resampleAudio(audioData, audioBuffer.sampleRate, sampleRate);
         
-        // Create offline context for processing
-        const offlineContext = new OfflineAudioContext(1, audioBuffer.length, audioBuffer.sampleRate);
-        const offlineSource = offlineContext.createBufferSource();
-        offlineSource.buffer = audioBuffer;
+        // Keep the same parameters but adjust the computation
+        const nFft = 2048;
+        const hopLength = 512;
+        const nMels = 128;
         
-        // Create analyzer in offline context
-        const offlineAnalyzer = offlineContext.createAnalyser();
-        offlineAnalyzer.fftSize = 2048;
-        const bufferLength = offlineAnalyzer.frequencyBinCount;
+        // Compute spectrogram with small precision improvements
+        const spectrogram = this.#computeSpectrogram(resampledData, nFft, hopLength);
         
-        // Connect nodes
-        offlineSource.connect(offlineAnalyzer);
-        offlineAnalyzer.connect(offlineContext.destination);
+        // Convert to mel scale
+        const melBasis = this.#getMelFilterbank(nFft, sampleRate, nMels);
+        const melSpectrogram = this.#applyMelFilterbank(spectrogram, melBasis);
         
-        // Start source
-        offlineSource.start(0);
+        // Adjust power to dB conversion to match librosa more closely
+        const melSpectrogramDb = this.#powerToDb(melSpectrogram, 1.0, 1e-10);
         
-        // Render audio
-        await offlineContext.startRendering();
+        // Normalize and flatten
+        const normalized = this.#normalize(melSpectrogramDb);
+        const flattened = normalized.flat();
         
-        // Get frequency data
-        const frequencyData = new Float32Array(bufferLength);
-        offlineAnalyzer.getFloatFrequencyData(frequencyData);
-        
-        // Normalize data (similar to PyTorch's approach)
-        const min = Math.min(...frequencyData);
-        const max = Math.max(...frequencyData);
-        const normalized = frequencyData.map(val => (val - min) / (max - min));
-        
-        // Match size with expected input (using first layer size if defined)
-        const targetSize = this.layers[0]?.inputSize || normalized.length;
-        return this.#padOrTruncate(Array.from(normalized), targetSize);
+        // Ensure 1024 features
+        return this.#padOrTruncate(flattened, 1024);
         
     } catch (error) {
-        console.error('Audio preprocessing error:', error);
         throw new Error(`Error preprocessing audio: ${error.message}`);
-    } finally {
-        // Clean up audio context
-        if (audioContext) {
-            audioContext.close();
+    }
+}
+
+// Small improvement to power to dB conversion
+#powerToDb(melSpectrogram, ref = 1.0, amin = 1e-10) {
+    return melSpectrogram.map(row => 
+        row.map(val => {
+            const scaled = Math.max(amin, val) / ref;
+            return 10 * Math.log10(scaled);
+        })
+    );
+}
+
+// Small improvement to normalization
+#normalize(spectrogram) {
+    const flattened = spectrogram.flat();
+    const min = Math.min(...flattened);
+    const max = Math.max(...flattened);
+    const range = max - min;
+    
+    return spectrogram.map(row => 
+        row.map(val => (val - min) / range)
+    );
+}
+  
+
+#getMono(audioBuffer) {
+    // Average all channels to get mono
+    const numChannels = audioBuffer.numberOfChannels;
+    const length = audioBuffer.length;
+    const monoData = new Float32Array(length);
+    
+    for (let i = 0; i < length; i++) {
+        let sum = 0;
+        for (let channel = 0; channel < numChannels; channel++) {
+            sum += audioBuffer.getChannelData(channel)[i];
+        }
+        monoData[i] = sum / numChannels;
+    }
+    return monoData;
+}
+
+#resampleAudio(audioData, originalRate, targetRate) {
+    const ratio = originalRate / targetRate;
+    const newLength = Math.floor(audioData.length / ratio);
+    const result = new Float32Array(newLength);
+    
+    for (let i = 0; i < newLength; i++) {
+        const idx = i * ratio;
+        const low = Math.floor(idx);
+        const high = Math.min(low + 1, audioData.length - 1);
+        const fraction = idx - low;
+        
+        result[i] = (1 - fraction) * audioData[low] + fraction * audioData[high];
+    }
+    
+    return result;
+}
+
+#computeSpectrogram(audioData, nFft, hopLength) {
+    const frames = [];
+    // Apply Hann window
+    const window = new Float32Array(nFft).map((_, i) => 
+        0.5 * (1 - Math.cos(2 * Math.PI * i / (nFft - 1)))
+    );
+    
+    for (let i = 0; i < audioData.length - nFft; i += hopLength) {
+        const frame = new Float32Array(nFft);
+        for (let j = 0; j < nFft; j++) {
+            frame[j] = audioData[i + j] * window[j];
+        }
+        
+        const magnitude = this.#computeFFT(frame);
+        frames.push(magnitude);
+    }
+    
+    return frames;
+}
+
+#computeFFT(frame) {
+    const fftSize = frame.length;
+    const real = new Float32Array(frame);
+    const imag = new Float32Array(fftSize);
+    
+    // In-place FFT
+    this.#fft(real, imag);
+    
+    // Compute magnitude spectrum
+    const magnitude = new Float32Array(fftSize / 2 + 1);
+    for (let i = 0; i <= fftSize / 2; i++) {
+        magnitude[i] = (real[i] * real[i] + imag[i] * imag[i]);
+    }
+    
+    return magnitude;
+}
+
+#getMelFilterbank(nFft, sampleRate, nMels) {
+    const fMin = 0;
+    const fMax = sampleRate / 2;
+    
+    // Convert to mel scale
+    const melMin = this.#hzToMel(fMin);
+    const melMax = this.#hzToMel(fMax);
+    const melPoints = new Float32Array(nMels + 2);
+    
+    for (let i = 0; i < nMels + 2; i++) {
+        melPoints[i] = melMin + (melMax - melMin) * i / (nMels + 1);
+    }
+    
+    const freqPoints = melPoints.map(mel => this.#melToHz(mel));
+    const fftFreqs = new Float32Array(nFft / 2 + 1);
+    for (let i = 0; i < fftFreqs.length; i++) {
+        fftFreqs[i] = i * sampleRate / nFft;
+    }
+    
+    // Create filterbank matrix
+    const filterbank = Array(nMels).fill().map(() => new Float32Array(nFft / 2 + 1).fill(0));
+    
+    for (let i = 0; i < nMels; i++) {
+        const f_left = freqPoints[i];
+        const f_center = freqPoints[i + 1];
+        const f_right = freqPoints[i + 2];
+        
+        for (let j = 0; j < fftFreqs.length; j++) {
+            const freq = fftFreqs[j];
+            if (freq >= f_left && freq <= f_right) {
+                if (freq <= f_center) {
+                    filterbank[i][j] = (freq - f_left) / (f_center - f_left);
+                } else {
+                    filterbank[i][j] = (f_right - freq) / (f_right - f_center);
+                }
+            }
+        }
+    }
+    
+    return filterbank;
+}
+
+#hzToMel(hz) {
+    return 2595 * Math.log10(1 + hz / 700);
+}
+
+#melToHz(mel) {
+    return 700 * (Math.pow(10, mel / 2595) - 1);
+}
+
+#applyMelFilterbank(spectrogram, melBasis) {
+    return melBasis.map(filter => 
+        spectrogram.map(frame => 
+            frame.reduce((sum, val, j) => sum + val * filter[j], 0)
+        )
+    );
+}
+
+#fft(real, imag) {
+    const n = real.length;
+    
+    // Bit reversal
+    for (let i = 0; i < n; i++) {
+        const j = this.#reverseBits(i, Math.log2(n));
+        if (j > i) {
+            [real[i], real[j]] = [real[j], real[i]];
+            [imag[i], imag[j]] = [imag[j], imag[i]];
+        }
+    }
+    
+    // FFT computation
+    for (let size = 2; size <= n; size *= 2) {
+        const halfsize = size / 2;
+        const angle = -2 * Math.PI / size;
+        
+        for (let i = 0; i < n; i += size) {
+            for (let j = 0; j < halfsize; j++) {
+                const k = i + j;
+                const l = k + halfsize;
+                const tpre = real[l] * Math.cos(angle * j) - imag[l] * Math.sin(angle * j);
+                const tpim = real[l] * Math.sin(angle * j) + imag[l] * Math.cos(angle * j);
+                
+                real[l] = real[k] - tpre;
+                imag[l] = imag[k] - tpim;
+                real[k] += tpre;
+                imag[k] += tpim;
+            }
         }
     }
 }
 
+#reverseBits(x, bits) {
+    let result = 0;
+    for (let i = 0; i < bits; i++) {
+        result = (result << 1) | (x & 1);
+        x >>= 1;
+    }
+    return result;
+}
+  
+  
 // Helper function to ensure consistent size
   #padOrTruncate(data, targetSize) {
     if (data.length > targetSize) {
@@ -856,6 +1030,8 @@ async train(trainSet, options = {}) {
 // Example usage
 const model = new carbono();
 model.load(()=>{
-  model.predict('https://cdn.pixabay.com/photo/2014/11/30/14/11/cat-551554_1280.jpg').then(prediction => {
+  model.predict('https://cdn.jsdelivr.net/gh/lunu-bounir/audio-equalizer/test/left.ogg')
+    .then(prediction => {
       console.log('Prediction:', prediction);
-})});
+  })
+});
