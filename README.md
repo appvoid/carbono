@@ -21,4 +21,6 @@ a micro-library with a simple api to build and train feed-forward neural network
 new carbono().layer(2,1).train([{ input:[1,1], output:[0] }])
 ```
 
+the purpose of this library is to let anyone quickly play with ideas using neural networks in pytorch and get those cool ideas easily shared across the internet using web technologies and a minimal packaging method.
+
 > if you need help, you can reach to me as @apppvoidofficial on X, you can also find me on tinyllama discord server sometimes.
