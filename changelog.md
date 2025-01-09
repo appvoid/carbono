@@ -12,7 +12,7 @@ This document provides insights into the reasoning behind the changes made betwe
 
 ### Reasoning:
 - **JSON as Default**: JSON is human-readable and widely supported, making it easier for developers to inspect, debug, and share models. This change prioritizes usability and interoperability.
-- **Binary Compression**: For larger models, JSON can result in large file sizes. Binary compression is introduced as an optional feature to reduce file size and improve load/save performance for larger neural networks. Keep in mind that saving models with significant low amount of parameters could result in accuracy loss and/or corrupted files.
+- **Binary Compression**: For larger models, JSON can result in large file sizes. Binary compression is introduced as an optional feature to reduce file size and improve load/save performance for larger neural networks. Compression is now reliable.
 
 ---
 
