@@ -425,13 +425,17 @@ class carbono {
     return output;
   }
 
-
-  async save(name = "model", useBinary = false) {
+async save(name = "model", useBinary = false) {
   try {
     console.log("Starting save process...");
+    console.log("Model state:", {
+      weightLayers: this.weights?.length,
+      biasLayers: this.biases?.length,
+      modelLayers: this.layers?.length
+    });
 
     // Validate weights and biases
-    if (this.weights.length === 0 || this.biases.length === 0) {
+    if (!this.weights?.length || !this.biases?.length) {
       throw new Error("Weights or biases are empty. Cannot save model.");
     }
 
@@ -462,123 +466,183 @@ class carbono {
 
     let fileBlob;
     if (useBinary) {
-      // Binary compression mode
-      console.log("Saving with binary compression...");
+      console.log("Using binary compression mode");
 
-      // Flatten and convert weights and biases to Float32Array
-      const flattenWeights = this.weights.flatMap(layer => 
-        layer.flatMap(row => row.map(val => val))
-      );
-      const flattenBiases = this.biases.flatMap(layer => layer.map(val => val));
+      // Calculate total buffer size needed
+      const totalWeights = this.weights.reduce((sum, layer) => 
+        sum + layer.length * layer[0].length, 0);
+      const totalBiases = this.biases.reduce((sum, layer) => 
+        sum + layer.length, 0);
 
-      const weightBuffer = new Float32Array(flattenWeights);
-      const biasBuffer = new Float32Array(flattenBiases);
+      // Create buffers
+      const weightBuffer = new Float32Array(totalWeights);
+      const biasBuffer = new Float32Array(totalBiases);
 
-      // Convert metadata to string and create binary data
+      // Flatten weights with proper indexing
+      let weightIndex = 0;
+      for (const layer of this.weights) {
+        for (const row of layer) {
+          for (const value of row) {
+            weightBuffer[weightIndex++] = value;
+          }
+        }
+      }
+
+      // Flatten biases with proper indexing
+      let biasIndex = 0;
+      for (const layer of this.biases) {
+        for (const value of layer) {
+          biasBuffer[biasIndex++] = value;
+        }
+      }
+
+      // Convert metadata to string and create header
       const metadataString = JSON.stringify(metadata);
-      const separator = '\n---BINARY_SEPARATOR---\n';
+      const metadataBytes = new TextEncoder().encode(metadataString);
       
-      // Create concatenated binary data
-      const binaryData = new Uint8Array([
-        ...new TextEncoder().encode(metadataString),
-        ...new TextEncoder().encode(separator),
-        ...new Uint8Array(weightBuffer.buffer),
-        ...new Uint8Array(biasBuffer.buffer)
+      // Calculate padding for alignment
+      const metadataPadding = (4 - (metadataBytes.length % 4)) % 4;
+
+      // Create header with sizes and padding info
+      const header = new Uint32Array([
+        metadataBytes.length,
+        metadataPadding,
+        weightBuffer.length,
+        biasBuffer.length
       ]);
 
-      fileBlob = new Blob([binaryData], { type: "application/octet-stream" });
-    } else {
-      // JSON mode
-      console.log("Saving as JSON...");
+      console.log("Header values:", {
+        metadataLength: header[0],
+        padding: header[1],
+        weightLength: header[2],
+        biasLength: header[3]
+      });
 
-      // Include weights and biases directly in the metadata
+      // Calculate total size with padding
+      const totalSize = header.byteLength + 
+                       metadataBytes.length +
+                       metadataPadding +
+                       weightBuffer.byteLength + 
+                       biasBuffer.byteLength;
+
+      // Combine all buffers
+      const combinedBuffer = new Uint8Array(totalSize);
+      
+      let offset = 0;
+      
+      // Write header
+      combinedBuffer.set(new Uint8Array(header.buffer), offset);
+      offset += header.byteLength;
+      
+      // Write metadata
+      combinedBuffer.set(metadataBytes, offset);
+      offset += metadataBytes.length;
+      
+      // Add padding
+      offset += metadataPadding;
+      
+      // Write weights
+      combinedBuffer.set(new Uint8Array(weightBuffer.buffer), offset);
+      offset += weightBuffer.byteLength;
+      
+      // Write biases
+      combinedBuffer.set(new Uint8Array(biasBuffer.buffer), offset);
+
+      fileBlob = new Blob([combinedBuffer], { type: "application/octet-stream" });
+      
+      console.log("Binary blob created:", {
+        size: fileBlob.size,
+        expectedSize: totalSize
+      });
+
+    } else {
+      console.log("Using JSON mode");
       metadata.weights = this.weights;
       metadata.biases = this.biases;
-
-      const jsonString = JSON.stringify(metadata);
-      fileBlob = new Blob([jsonString], { type: "application/json" });
+      fileBlob = new Blob([JSON.stringify(metadata)], { type: "application/json" });
     }
 
     const extension = useBinary ? '.uai' : '.json';
-    
-    // Create download link
     const downloadUrl = URL.createObjectURL(fileBlob);
-    const link = Object.assign(document.createElement('a'), {
-      href: downloadUrl,
-      download: `${this.details.info.name}${extension}`,
-      style: 'display: none'
-    });
-
+    
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = `${name}${extension}`;
     document.body.appendChild(link);
     link.click();
-
-    console.log("Save process completed.");
-  } catch (error) {
-    console.error("Error during save:", error);
-    throw error;
-  } finally {
+    document.body.removeChild(link);
     URL.revokeObjectURL(downloadUrl);
+
+    console.log("Save process completed successfully");
+    return true;
+  } catch (error) {
+    console.error("Save process failed:", error);
+    throw error;
   }
 }
 
-  async load(callback, useBinary = false) {
+async load(callback, useBinary = false) {
   try {
     console.log("Starting load process...");
 
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = useBinary ? '.uai' : '.json';
-    input.style.display = 'none';
 
     const [file] = await new Promise(resolve => {
       input.onchange = e => resolve(e.target.files);
+      document.body.appendChild(input);
       input.click();
+      document.body.removeChild(input);
     });
 
-    if (!file) {
-      throw new Error("No file selected.");
-    }
+    if (!file) throw new Error("No file selected");
 
-    const fileContent = await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = e => resolve(e.target.result);
-      reader.onerror = reject;
-      reader.readAsArrayBuffer(file);
+    console.log("File selected:", {
+      name: file.name,
+      size: file.size,
+      type: file.type
     });
 
+    const arrayBuffer = await file.arrayBuffer();
+    
     let metadata;
     if (useBinary) {
-      // Binary compression mode
-      console.log("Loading with binary compression...");
+      // Read header (4 values)
+      const headerView = new Uint32Array(arrayBuffer, 0, 4);
+      const [metadataLength, metadataPadding, weightLength, biasLength] = headerView;
 
-      const dataView = new Uint8Array(fileContent);
-      const separator = '\n---BINARY_SEPARATOR---\n';
-      const separatorBytes = new TextEncoder().encode(separator);
-
-      // Find the separator position
-      const separatorIndex = dataView.findIndex((val, i) => {
-        return val === separatorBytes[0] &&
-               dataView.slice(i, i + separatorBytes.length).every((v, j) => v === separatorBytes[j]);
+      console.log("Header values:", {
+        metadataLength,
+        padding: metadataPadding,
+        weightLength,
+        biasLength,
+        headerSize: headerView.byteLength
       });
 
-      if (separatorIndex === -1) {
-        throw new Error("Separator not found in file. File may be corrupted.");
+      // Calculate aligned offsets
+      const metadataOffset = headerView.byteLength;
+      const weightOffset = metadataOffset + metadataLength + metadataPadding;
+      const biasOffset = weightOffset + (weightLength * 4);
+
+      console.log("Buffer offsets:", {
+        metadataOffset,
+        weightOffset,
+        biasOffset
+      });
+
+      // Validate buffer size
+      const expectedSize = biasOffset + (biasLength * 4);
+      if (arrayBuffer.byteLength !== expectedSize) {
+        throw new Error(`Invalid buffer size: expected ${expectedSize}, got ${arrayBuffer.byteLength}`);
       }
 
-      // Split metadata and binary data
-      const metadataBytes = dataView.slice(0, separatorIndex);
+      // Read metadata
+      const metadataBytes = new Uint8Array(arrayBuffer, metadataOffset, metadataLength);
       metadata = JSON.parse(new TextDecoder().decode(metadataBytes));
-      
-      // Calculate total sizes
-      const totalWeights = metadata.layerInfo.weightShapes.reduce((sum, shape) => sum + shape[0] * shape[1], 0);
-      const totalBiases = metadata.layerInfo.biasShapes.reduce((a, b) => a + b, 0);
-      
-      // Extract binary data
-      const binaryStart = separatorIndex + separatorBytes.length;
-      const weightBuffer = new Float32Array(fileContent, binaryStart, totalWeights);
-      const biasBuffer = new Float32Array(fileContent, binaryStart + totalWeights * 4, totalBiases);
 
-      // Reconstruct weights
+      // Read weights
+      const weightBuffer = new Float32Array(arrayBuffer, weightOffset, weightLength);
       let weightIndex = 0;
       this.weights = metadata.layerInfo.weightShapes.map(shape => {
         const layerWeights = [];
@@ -590,21 +654,17 @@ class carbono {
         return layerWeights;
       });
 
-      // Reconstruct biases
+      // Read biases
+      const biasBuffer = new Float32Array(arrayBuffer, biasOffset, biasLength);
       let biasIndex = 0;
       this.biases = metadata.layerInfo.biasShapes.map(shape => {
         const layerBiases = Array.from(biasBuffer.slice(biasIndex, biasIndex + shape));
         biasIndex += shape;
         return layerBiases;
       });
+
     } else {
-      // JSON mode
-      console.log("Loading as JSON...");
-
-      const jsonString = new TextDecoder().decode(fileContent);
-      metadata = JSON.parse(jsonString);
-
-      // Directly assign weights and biases
+      metadata = JSON.parse(new TextDecoder().decode(arrayBuffer));
       this.weights = metadata.weights;
       this.biases = metadata.biases;
     }
@@ -614,15 +674,15 @@ class carbono {
     this.details = metadata.details;
     if (metadata.tags) this.tags = metadata.tags;
 
-    console.log("Load process completed.");
+    console.log("Load process completed successfully");
     callback?.();
+    return true;
   } catch (error) {
-    console.error("Error during load:", error);
+    console.error("Load process failed:", error);
     throw error;
-  } finally {
-    document.querySelector('input[type="file"]')?.remove();
   }
-} 
+}
+  
   info(infoUpdates) {
     this.details.info = infoUpdates
   }
