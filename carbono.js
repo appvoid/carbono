@@ -425,175 +425,204 @@ class carbono {
     return output;
   }
 
-async save(name = "model") {
-  // Prepare metadata
-  if (!this.details.info) {
-    this.details.info = {
-      name: name,
-      author: '',
-      license: 'MIT',
-      note: '',
-      date: new Date().toISOString()
-    };
-  }
 
-  // If no custom name is set, use the save parameter
-  if (this.details.info.name === 'Untitled Model') {
-    this.details.info.name = name;
-  }
-
-  // Flatten and convert weights and biases to Float32Array
-  const flattenWeights = this.weights.flatMap(layer => 
-    layer.flatMap(row => row.map(val => val))
-  );
-  const flattenBiases = this.biases.flatMap(layer => layer.map(val => val));
-
-  const weightBuffer = new Float32Array(flattenWeights);
-  const biasBuffer = new Float32Array(flattenBiases);
-
-  // Prepare metadata for weights/biases structure
-  const layerInfo = {
-    weightShapes: this.weights.map(layer => [layer.length, layer[0].length]),
-    biasShapes: this.biases.map(layer => layer.length)
-  };
-
-  // Create metadata object
-  const metadata = {
-    layers: this.layers,
-    details: this.details,
-    layerInfo: layerInfo,
-    ...(this.tags && { tags: this.tags })
-  };
-
-  // Convert metadata to string and create binary data
-  const metadataString = JSON.stringify(metadata);
-  const separator = '\n---BINARY_SEPARATOR---\n';
-  
-  // Create concatenated binary data
-  const binaryData = new Uint8Array([
-    ...new TextEncoder().encode(metadataString),
-    ...new TextEncoder().encode(separator),
-    ...new Uint8Array(weightBuffer.buffer),
-    ...new Uint8Array(biasBuffer.buffer)
-  ]);
-
-  // Create blob and download
-  const fileBlob = new Blob([binaryData], { type: "application/octet-stream" });
-  const downloadUrl = URL.createObjectURL(fileBlob);
-
+  async save(name = "model", useBinary = false) {
   try {
+    console.log("Starting save process...");
+
+    // Validate weights and biases
+    if (this.weights.length === 0 || this.biases.length === 0) {
+      throw new Error("Weights or biases are empty. Cannot save model.");
+    }
+
+    // Prepare metadata
+    if (!this.details.info) {
+      this.details.info = {
+        name: name,
+        author: '',
+        license: 'MIT',
+        note: '',
+        date: new Date().toISOString()
+      };
+    }
+
+    // Prepare metadata for weights/biases structure
+    const layerInfo = {
+      weightShapes: this.weights.map(layer => [layer.length, layer[0].length]),
+      biasShapes: this.biases.map(layer => layer.length)
+    };
+
+    // Create metadata object
+    const metadata = {
+      layers: this.layers,
+      details: this.details,
+      layerInfo: layerInfo,
+      ...(this.tags && { tags: this.tags })
+    };
+
+    let fileBlob;
+    if (useBinary) {
+      // Binary compression mode
+      console.log("Saving with binary compression...");
+
+      // Flatten and convert weights and biases to Float32Array
+      const flattenWeights = this.weights.flatMap(layer => 
+        layer.flatMap(row => row.map(val => val))
+      );
+      const flattenBiases = this.biases.flatMap(layer => layer.map(val => val));
+
+      const weightBuffer = new Float32Array(flattenWeights);
+      const biasBuffer = new Float32Array(flattenBiases);
+
+      // Convert metadata to string and create binary data
+      const metadataString = JSON.stringify(metadata);
+      const separator = '\n---BINARY_SEPARATOR---\n';
+      
+      // Create concatenated binary data
+      const binaryData = new Uint8Array([
+        ...new TextEncoder().encode(metadataString),
+        ...new TextEncoder().encode(separator),
+        ...new Uint8Array(weightBuffer.buffer),
+        ...new Uint8Array(biasBuffer.buffer)
+      ]);
+
+      fileBlob = new Blob([binaryData], { type: "application/octet-stream" });
+    } else {
+      // JSON mode
+      console.log("Saving as JSON...");
+
+      // Include weights and biases directly in the metadata
+      metadata.weights = this.weights;
+      metadata.biases = this.biases;
+
+      const jsonString = JSON.stringify(metadata);
+      fileBlob = new Blob([jsonString], { type: "application/json" });
+    }
+
+    const extension = useBinary ? '.uai' : '.json';
+    
+    // Create download link
+    const downloadUrl = URL.createObjectURL(fileBlob);
     const link = Object.assign(document.createElement('a'), {
       href: downloadUrl,
-      download: `${this.details.info.name}.uai`,
+      download: `${this.details.info.name}${extension}`,
       style: 'display: none'
     });
 
     document.body.appendChild(link);
     link.click();
+
+    console.log("Save process completed.");
+  } catch (error) {
+    console.error("Error during save:", error);
+    throw error;
   } finally {
     URL.revokeObjectURL(downloadUrl);
   }
 }
 
-async load(callback) {
-  const createFileInput = () => Object.assign(document.createElement('input'), {
-    type: 'file',
-    accept: '.uai',
-    style: 'display: none'
-  });
-
-  const readFile = file => new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = e => resolve(e.target.result);
-    reader.onerror = reject;
-    reader.readAsArrayBuffer(file);
-  });
-
+  async load(callback, useBinary = false) {
   try {
-    const input = createFileInput();
-    document.body.appendChild(input);
+    console.log("Starting load process...");
+
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = useBinary ? '.uai' : '.json';
+    input.style.display = 'none';
 
     const [file] = await new Promise(resolve => {
       input.onchange = e => resolve(e.target.files);
       input.click();
     });
 
-    if (!file) return;
-
-    const fileContent = await readFile(file);
-    const dataView = new Uint8Array(fileContent);
-    
-    // Find the separator position
-    const separator = '\n---BINARY_SEPARATOR---\n';
-    const separatorBytes = new TextEncoder().encode(separator);
-    let separatorIndex = -1;
-    
-    for (let i = 0; i < dataView.length - separatorBytes.length; i++) {
-      if (dataView[i] === separatorBytes[0]) {
-        let found = true;
-        for (let j = 0; j < separatorBytes.length; j++) {
-          if (dataView[i + j] !== separatorBytes[j]) {
-            found = false;
-            break;
-          }
-        }
-        if (found) {
-          separatorIndex = i;
-          break;
-        }
-      }
+    if (!file) {
+      throw new Error("No file selected.");
     }
 
-    if (separatorIndex === -1) throw new Error('Invalid file format');
+    const fileContent = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = e => resolve(e.target.result);
+      reader.onerror = reject;
+      reader.readAsArrayBuffer(file);
+    });
 
-    // Split metadata and binary data
-    const metadataBytes = dataView.slice(0, separatorIndex);
-    const metadata = JSON.parse(new TextDecoder().decode(metadataBytes));
-    
-    // Calculate total sizes
-    const totalWeights = metadata.layerInfo.weightShapes.reduce((sum, shape) => sum + shape[0] * shape[1], 0);
-    const totalBiases = metadata.layerInfo.biasShapes.reduce((a, b) => a + b, 0);
-    
-    // Extract binary data
-    const binaryStart = separatorIndex + separatorBytes.length;
-    const weightBuffer = new Float32Array(fileContent, binaryStart, totalWeights);
-    const biasBuffer = new Float32Array(fileContent, binaryStart + totalWeights * 4, totalBiases);
+    let metadata;
+    if (useBinary) {
+      // Binary compression mode
+      console.log("Loading with binary compression...");
 
-    // Reconstruct weights
-    let weightIndex = 0;
-    this.weights = metadata.layerInfo.weightShapes.map(shape => {
-      const layerWeights = [];
-      for (let i = 0; i < shape[0]; i++) {
-        const row = Array.from(weightBuffer.slice(weightIndex, weightIndex + shape[1]));
-        layerWeights.push(row);
-        weightIndex += shape[1];
+      const dataView = new Uint8Array(fileContent);
+      const separator = '\n---BINARY_SEPARATOR---\n';
+      const separatorBytes = new TextEncoder().encode(separator);
+
+      // Find the separator position
+      const separatorIndex = dataView.findIndex((val, i) => {
+        return val === separatorBytes[0] &&
+               dataView.slice(i, i + separatorBytes.length).every((v, j) => v === separatorBytes[j]);
+      });
+
+      if (separatorIndex === -1) {
+        throw new Error("Separator not found in file. File may be corrupted.");
       }
-      return layerWeights;
-    });
 
-    // Reconstruct biases
-    let biasIndex = 0;
-    this.biases = metadata.layerInfo.biasShapes.map(shape => {
-      const layerBiases = Array.from(biasBuffer.slice(biasIndex, biasIndex + shape));
-      biasIndex += shape;
-      return layerBiases;
-    });
+      // Split metadata and binary data
+      const metadataBytes = dataView.slice(0, separatorIndex);
+      metadata = JSON.parse(new TextDecoder().decode(metadataBytes));
+      
+      // Calculate total sizes
+      const totalWeights = metadata.layerInfo.weightShapes.reduce((sum, shape) => sum + shape[0] * shape[1], 0);
+      const totalBiases = metadata.layerInfo.biasShapes.reduce((a, b) => a + b, 0);
+      
+      // Extract binary data
+      const binaryStart = separatorIndex + separatorBytes.length;
+      const weightBuffer = new Float32Array(fileContent, binaryStart, totalWeights);
+      const biasBuffer = new Float32Array(fileContent, binaryStart + totalWeights * 4, totalBiases);
+
+      // Reconstruct weights
+      let weightIndex = 0;
+      this.weights = metadata.layerInfo.weightShapes.map(shape => {
+        const layerWeights = [];
+        for (let i = 0; i < shape[0]; i++) {
+          const row = Array.from(weightBuffer.slice(weightIndex, weightIndex + shape[1]));
+          layerWeights.push(row);
+          weightIndex += shape[1];
+        }
+        return layerWeights;
+      });
+
+      // Reconstruct biases
+      let biasIndex = 0;
+      this.biases = metadata.layerInfo.biasShapes.map(shape => {
+        const layerBiases = Array.from(biasBuffer.slice(biasIndex, biasIndex + shape));
+        biasIndex += shape;
+        return layerBiases;
+      });
+    } else {
+      // JSON mode
+      console.log("Loading as JSON...");
+
+      const jsonString = new TextDecoder().decode(fileContent);
+      metadata = JSON.parse(jsonString);
+
+      // Directly assign weights and biases
+      this.weights = metadata.weights;
+      this.biases = metadata.biases;
+    }
 
     // Load other metadata
     this.layers = metadata.layers;
     this.details = metadata.details;
     if (metadata.tags) this.tags = metadata.tags;
-    if (metadata.labels) this.tags = metadata.labels; // ensures compatibility with v5 and below
 
-    this.debug && console.log("✅ Model loaded successfully!");
+    console.log("Load process completed.");
     callback?.();
   } catch (error) {
-    this.debug && console.error("❌ Failed to load model:", error);
+    console.error("Error during load:", error);
+    throw error;
   } finally {
-    delete this.debug;
     document.querySelector('input[type="file"]')?.remove();
   }
-}
+} 
   info(infoUpdates) {
     this.details.info = infoUpdates
   }
