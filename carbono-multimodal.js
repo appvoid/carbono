@@ -1,6 +1,7 @@
 // this is a more recent version of carbono multimodal and hasn't been tested for training on js yet
 // this code can do inference from multimodal models exported from pytorch's multimodal notebook
-// currently, the model supports text and images and audio
+// currently, the model supports text and images and audio in super simplistic manner, also, it's v6
+// so is not compatible with latest model versions
 
 // final version of carbono should be an easy to prototype, multimodal feedforward neural network framework (within 1k loc)
 // that lets you train gpu-powered models in any modality and lets you do inference and/or light finetuning on the browser
