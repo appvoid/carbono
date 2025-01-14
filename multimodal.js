@@ -3,8 +3,11 @@
 // currently, the model supports text and images and audio in super simplistic manner, also, it's v6
 // so is not compatible with latest model versions
 
-// final version of carbono should be an easy to prototype, multimodal feedforward neural network framework (within 1k loc)
+// final version of carbono should (wip) be an easy to prototype, multimodal feedforward neural network framework (within 1k loc)
 // that lets you train gpu-powered models in any modality and lets you do inference and/or light finetuning on the browser
+
+// edit: after some research, i noticed ffnns might not be really good for multimodal things, at least not in a comprehensive manner
+// this means that multimodal might or might not get into carbono, it really depends on how complex things get with audio and visual features
 
 class carbono {
   constructor(debug = true) {
