@@ -190,16 +190,11 @@ await nn.save("xor_model");
 
 ```
 
-Key updates from the previous version:
-
-- Added binary .uai format support in save/load methods
+Additional updates from previous version:
 
 - Updated default epochs to 10 and printEveryEpochs to 1
 
 - Clarified return types and default values
 
-- Added method chaining support for layer() method
-
-- Streamlined documentation structure
-
 - Corrected default learning rate to 0.212
+- 
