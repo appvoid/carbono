@@ -197,4 +197,3 @@ Additional updates from previous version:
 - Clarified return types and default values
 
 - Corrected default learning rate to 0.212
-- 
