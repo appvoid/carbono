@@ -1,59 +1,109 @@
-# Unified AI (UAI) Specification v1.0
+# Unified AI (UAI) Specification v1.1
+
+## Overview
+The Unified AI (UAI) specification defines a standard for implementing and managing feed-forward neural networks in web browsers. The reference implementation `carbono` demonstrates this specification in practice.
 
 ## Core Definition
-
-`carbono` is a lightweight, UAI-compatible feed-forward network example. It provides a unified interface for training, inference, and model management. On the other hand, `UAI` is a specification, an effort to push interest into a common web standard for feed-forward neural networks management on browsers.
+`carbono` is a lightweight, UAI-compatible feed-forward neural network implementation that provides a unified interface for training, inference, and model management. The UAI specification aims to establish a common web standard for managing feed-forward neural networks in browsers.
 
 ## Key Components
 
 ### 1. Neural Network Architecture
 ```javascript
 class carbono {
-  constructor() {
-    this.layers = [];     // Network layers
-    this.weights = [];    // Layer weights
-    this.biases = [];     // Layer biases
-    this.details = {};    // Model metadata
+  constructor(debug = true) {
+    this.layers = [];     // Network layers configuration
+    this.weights = [];    // Layer weights matrices
+    this.biases = [];     // Layer biases vectors
+    this.details = {};    // Model metadata and training details
   }
 }
 ```
 
-- `layers` must contain, number of input and output nodes as reference as well as its activation function.
-- `details` might contain any useful information for the end user.
+#### Required Properties
+- `layers`: Array of layer configurations, each containing:
+  - `inputSize`: Number of input nodes
+  - `outputSize`: Number of output nodes
+  - `activation`: Activation function identifier
+- `weights`: Array of weight matrices for each layer
+- `biases`: Array of bias vectors for each layer
+- `details`: Object containing model metadata and training information
 
 ### 2. Core Operations
 
 #### Layer Management
-- Dynamic layer addition with input/output size specification
-- Automatic layer size validation
-- Xavier weight initialization
+- Dynamic layer addition via `layer(inputSize, outputSize, activation)` method
+- Automatic layer size validation between consecutive layers
+- Xavier weight initialization for optimal training
+- Support for various activation functions
 
 #### Training Pipeline
-- Forward propagation with layer caching
-- Backward propagation with error computation
-- Gradient-based weight updates
+- Forward propagation with cached layer inputs and outputs
+- Backward propagation with comprehensive error computation
+- Support for multiple optimization methods
+- Early stopping capability
+- Optional test set evaluation
+- Training progress callbacks
 
 #### Optimization Methods
-- Sthocastic Gradient Descend
-- Adam with momentum (optional)
+- Stochastic Gradient Descent (SGD)
+- Adam optimizer with momentum and adaptive learning rates
+  - β₁ = 0.9
+  - β₂ = 0.999
+  - ε = 1e-8
 
 ### 3. Supported Features
 
 #### Activation Functions
-- Tanh
-- Sigmoid
-- ReLU
-- SELU
-- Softmax
+All activation functions must implement both forward pass and derivative:
+- `tanh`: Hyperbolic tangent
+- `sigmoid`: Logistic function
+- `relu`: Rectified Linear Unit
+- `selu`: Scaled Exponential Linear Unit
+- `softmax`: Softmax function (for classification)
 
 #### Loss Functions
-- Mean Squared Error
-- Cross-Entropy
+Each loss function must provide both loss calculation and derivative:
+- `mse`: Mean Squared Error
+- `cross-entropy`: Cross-Entropy Loss
 
 #### Model Persistence
-- Save to .uai format
-- Load from .uai files
-- Metadata management
+
+##### Save Format Options
+1. Binary Format (.uai)
+- Header structure (Uint32Array):
+  - Metadata length
+  - Metadata padding
+  - Weight buffer length
+  - Bias buffer length
+- Metadata section (JSON)
+- Weight buffer (Float32Array)
+- Bias buffer (Float32Array)
+
+2. JSON Format (.json)
+- Complete model state in JSON format
+- Includes weights, biases, layer configurations, and metadata
+
+##### Model Metadata
+```javascript
+{
+  parameters: number,           // Total number of parameters
+  training: {
+    loss: number,              // Final training loss
+    testLoss: number,          // Final test loss (if applicable)
+    time: number,              // Training duration in ms
+    epochs: number,            // Number of epochs trained
+    learningRate: number       // Learning rate used
+  },
+  info: {                      // Optional model information
+    name: string,
+    author: string,
+    license: string,
+    note: string,
+    date: string
+  }
+}
+```
 
 ## Implementation Requirements
 
@@ -61,34 +111,55 @@ class carbono {
 - Zero external dependencies
 - Pure JavaScript implementation
 - Web-first architecture
+- Asynchronous operations support
+- File system interaction via browser APIs
 
 ### Memory Management
 - Efficient matrix operations
 - Automatic cleanup of optimization states
 - Browser-friendly resource usage
+- Proper TypedArray usage for binary operations
 
 ### Error Handling
 - Layer size validation
 - Numerical stability checks
 - Graceful fallbacks
+- Comprehensive error messages
 
-## File Format (.uai)
+### Binary Format (.uai) Specification
+The .uai format is a binary file format optimized for neural network storage:
 
-Unified AI format is a simple JSON string with at least the following properties:
-
-```javascript
-{
-  weights: Float32Array[][],
-  biases: Float32Array[],
-  layers: LayerConfig[],
-  details: ModelMetadata,
-  tags?: string[]  // Optional for classification
-}
+1. Header Section (16 bytes)
+```
+[0-3]   Uint32: Metadata length
+[4-7]   Uint32: Metadata padding
+[8-11]  Uint32: Weight buffer length
+[12-15] Uint32: Bias buffer length
 ```
 
-## Version Information
-- Specification Version: 1.0
-- Implementation Status: Beta
-- Last Updated: Mon 25 Nov, 2024
+2. Metadata Section
+- JSON-encoded string containing:
+  ```javascript
+  {
+    layers: LayerConfig[],
+    details: ModelMetadata,
+    layerInfo: {
+      weightShapes: number[][],
+      biasShapes: number[]
+    },
+    tags?: string[]  // Optional for classification
+  }
+  ```
+- Padded to 4-byte alignment
 
-This specification defines the core functionality and requirements for implementing carbono's architecture and file format, focusing on simplicity, accessibility, and browser compatibility.
+3. Data Section
+- Weight values (Float32Array)
+- Bias values (Float32Array)
+
+## Version Information
+- Specification Version: 1.1
+- Implementation Status: Production Ready
+- Last Updated: January 15, 2025
+- Reference Implementation: carbono.js
+
+This specification defines the complete requirements for implementing UAI-compatible neural networks, with a focus on browser-based deployment and standardization.
