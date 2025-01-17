@@ -9,9 +9,10 @@ a micro-library for feedforward neural networks that works everywhere:
 > - v5: new metadata fields added; removed unnecesary "layers" metadata
 
 #### Browser & Edge Ready
-- Tiny models (2kb quantized)
+- Highly optimized models
 - Fast browser inference
 - Edge-optimized C++ server
+- Fast training with Pytorch
 - Simple JavaScript API
 
 #### Build Once, Run Anywhere
