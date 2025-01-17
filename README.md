@@ -6,7 +6,7 @@
 > - v6: dramatically optimized file size; for instance, 18k parameters model was reduced from 376kb to 73kb
 > - v5: new metadata fields added; removed unnecesary "layers" metadata
 
-a micro-library for neural networks that works everywhere:
+a micro-library for feedforward neural networks that works everywhere:
 
 #### environments
 - browser: fast inference, simple training
