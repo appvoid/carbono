@@ -309,7 +309,7 @@ quantize(calibrationData = null) {
         };
     });
 
-    this.quantized = true;
+    this._isQuantized = true;
     return this;
 }
 
@@ -323,7 +323,7 @@ quantize(calibrationData = null) {
         const rawOutput = [];
         const weights = this.weights[i];
         const biases = this.biases[i];
-        const params = this.quantized ? this.quantizationParams[i] : null;
+        const params = this._isQuantized ? this.quantizationParams[i] : null;
 
         for (let j = 0; j < weights.length; j++) {
             let sum = 0;
@@ -385,7 +385,7 @@ async save(name = "model", useBinary = false) {
             const metadata = {
                 layers: this.layers,
                 details: this.details,
-                quantized: this.quantized,
+                isQuantized: this._isQuantized,
                 quantizationParams: this.quantizationParams,
                 ...(this.tags && { tags: this.tags })
             };
@@ -416,7 +416,7 @@ async save(name = "model", useBinary = false) {
             const totalSize = header.byteLength + 
                             metadataBytes.length +
                             metadataPadding +
-                            (this.quantized ? 
+                            (this._isQuantized ? 
                                 (totalWeights + totalBiases) : 
                                 (totalWeights + totalBiases) * 8);
 
@@ -440,7 +440,7 @@ async save(name = "model", useBinary = false) {
             // Write weights
             for (let i = 0; i < this.weights.length; i++) {
                 for (let j = 0; j < this.weights[i].length; j++) {
-                    if (this.quantized) {
+                    if (this._isQuantized) {
                         view.set(this.weights[i][j], offset);
                         offset += this.weights[i][j].length;
                     } else {
@@ -452,13 +452,13 @@ async save(name = "model", useBinary = false) {
             }
 
             // Ensure offset is 8-byte aligned before biases
-            if (!this.quantized && offset % 8 !== 0) {
+            if (!this._isQuantized && offset % 8 !== 0) {
                 offset += (8 - (offset % 8));
             }
 
             // Write biases
             for (let i = 0; i < this.biases.length; i++) {
-                if (this.quantized) {
+                if (this._isQuantized) {
                     view.set(this.biases[i], offset);
                     offset += this.biases[i].length;
                 } else {
@@ -485,12 +485,12 @@ async save(name = "model", useBinary = false) {
             const metadata = {
                 layers: this.layers,
                 details: this.details,
-                quantized: this.quantized,
+                isQuantized: this._isQuantized,
                 quantizationParams: this.quantizationParams,
-                weights: this.quantized ? 
+                weights: this._isQuantized ? 
                     this.weights.map(layer => layer.map(neuron => Array.from(neuron))) :
                     this.weights,
-                biases: this.quantized ? 
+                biases: this._isQuantized ? 
                     this.biases.map(bias => Array.from(bias)) :
                     this.biases
             };
@@ -542,7 +542,7 @@ async load(callback, useBinary = false) {
 
             let offset = metadataOffset + metadataLength + metadataPadding;
 
-            this.quantized = metadata.isQuantized;
+            this._isQuantized = metadata.isQuantized;
             this.quantizationParams = metadata.quantizationParams;
             this.layers = metadata.layers;
             this.details = metadata.details;
@@ -553,7 +553,7 @@ async load(callback, useBinary = false) {
             metadata.layers.forEach((layer, i) => {
                 const layerWeights = [];
                 for (let j = 0; j < layer.outputSize; j++) {
-                    if (this.quantized) {
+                    if (this._isQuantized) {
                         const neuron = new Int8Array(arrayBuffer, offset, layer.inputSize);
                         layerWeights.push(new Int8Array(neuron));
                         offset += layer.inputSize;
@@ -569,7 +569,7 @@ async load(callback, useBinary = false) {
             // Load biases
             this.biases = [];
             metadata.layers.forEach(layer => {
-                if (this.quantized) {
+                if (this._isQuantized) {
                     const bias = new Int8Array(arrayBuffer, offset, layer.outputSize);
                     this.biases.push(new Int8Array(bias));
                     offset += layer.outputSize;
@@ -582,13 +582,13 @@ async load(callback, useBinary = false) {
         } else {
             const metadata = JSON.parse(new TextDecoder().decode(arrayBuffer));
             
-            this.quantized = metadata.isQuantized;
+            this._isQuantized = metadata.isQuantized;
             this.quantizationParams = metadata.quantizationParams;
             this.layers = metadata.layers;
             this.details = metadata.details;
             if (metadata.tags) this.tags = metadata.tags;
 
-            if (this.quantized) {
+            if (this._isQuantized) {
                 this.weights = metadata.weights.map(layer =>
                     layer.map(neuron => new Int8Array(neuron))
                 );
@@ -914,6 +914,8 @@ async load(callback, useBinary = false) {
   
       return output;
     }
+
+
     
     // ℹ️ Info: Updates model metadata (e.g., author, license, etc.)
     info(infoUpdates) {
