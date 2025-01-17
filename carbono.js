@@ -1,3 +1,4 @@
+// appvoid carbono 8 (beta) 
 /* 
  *  this is a complete example of a standard feed-forward neural network and ideally, in the future, this self-contained model is planned to be 
  *  sufficient to handle general use-case scenarios as well as becoming a supportive, general-purpose engine for training as well as 
@@ -5,7 +6,6 @@
  *  at your own risk.
  */
 
-// this is carbono 8 in beta: 
 // major changes:
 // new drop, insert, replace layer methods
 // removed unused matrixMultiply method
