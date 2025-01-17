@@ -9,9 +9,9 @@
 a micro-library for neural networks that works everywhere:
 
 #### environments
-- browser: Fast inference, simple training
+- browser: fast inference, simple training
 - python/pyTorch: gpu-accelerated training
-- c++ Server: optimized edge inference
+- c++ server: optimized edge inference
 - python: cpu training without pyTorch dependencies
 
 #### optimization
