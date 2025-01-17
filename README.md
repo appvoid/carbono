@@ -6,7 +6,18 @@
 > - v6: dramatically optimized file size; for instance, 18k parameters model was reduced from 376kb to 73kb
 > - v5: new metadata fields added; removed unnecesary "layers" metadata
 
-A micro-library built for edge devices to train feed-forward neural networks in under 1000 lines of code.
+a micro-library for neural networks that works everywhere:
+
+#### environments
+- browser: Fast inference, simple training
+- python/pyTorch: gpu-accelerated training
+- c++ Server: optimized edge inference
+- python: cpu training without pyTorch dependencies
+
+#### optimization
+- compressed models (32kb → 2kb)
+- 8-bit quantization for edge devices
+- binary format for larger networks
 
 #### Quick Usage
 ```html
@@ -37,5 +48,3 @@ curl -X POST http://localhost:8080/predict \
 
 # {"output":[0.0009481541869894417]}
 ```
-
-> if you need help, you can reach to me as @apppvoidofficial on X, you can also find me on tinyllama discord server sometimes.
