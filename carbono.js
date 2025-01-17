@@ -4,6 +4,14 @@
  *  inference on pytorch; this is not by any means stable yet, even though i'm expecting the tool to be improved over time, you must use it 
  *  at your own risk.
  */
+
+// this is carbono 8 in beta: 
+// major changes:
+// new drop, insert, replace layer methods
+// removed unused matrixMultiply method
+// new 8-bit quantization feature
+// removed selu for simplicity
+
 class carbono {
     // 🏗️ Constructor: Initializes the neural network with default settings
     constructor(debug = true) {
