@@ -10,7 +10,7 @@ a micro-library for neural networks that works everywhere:
 
 #### environments
 - browser: fast inference, simple training
-- python/pyTorch: gpu-accelerated training
+- python/pytorch: gpu-accelerated training
 - c++ server: optimized edge inference
 - python: cpu training without pyTorch dependencies
 
@@ -19,7 +19,7 @@ a micro-library for neural networks that works everywhere:
 - 8-bit quantization for edge devices
 - binary format for larger networks
 
-#### Quick Usage
+#### quick usage
 ```html
 <script src="carbono.js"></script>
 ```
