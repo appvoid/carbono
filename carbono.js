@@ -271,10 +271,7 @@ class carbono {
 
 // Quantization Methods
 quantize(calibrationData = null) {
-    // Store original weights for backup
-    this._originalWeights = structuredClone(this.weights);
-    this._originalBiases = structuredClone(this.biases);
-    this.quantizationParams = [];
+    this.quants = [];
 
     this.layers.forEach((layer, layerIdx) => {
         // Find min/max values for weights and biases
@@ -312,13 +309,13 @@ quantize(calibrationData = null) {
         // Store quantized values and scales
         this.weights[layerIdx] = quantizedWeights;
         this.biases[layerIdx] = quantizedBiases;
-        this.quantizationParams[layerIdx] = {
+        this.quants[layerIdx] = {
             weightScale,
             biasScale
         };
     });
 
-    this._isQuantized = true;
+    this.quantized = true;
     return this;
 }
 
@@ -332,17 +329,17 @@ quantize(calibrationData = null) {
         const rawOutput = [];
         const weights = this.weights[i];
         const biases = this.biases[i];
-        const params = this._isQuantized ? this.quantizationParams[i] : null;
+        const quants = this.quantized ? this.quants[i] : null;
 
         for (let j = 0; j < weights.length; j++) {
             let sum = 0;
             for (let k = 0; k < current.length; k++) {
                 const w = weights[j][k];
-                const actualWeight = params ? w * params.weightScale : w;
+                const actualWeight = quants ? w * quants.weightScale : w;
                 sum += actualWeight * current[k];
             }
             const b = biases[j];
-            const actualBias = params ? b * params.biasScale : b;
+            const actualBias = quants ? b * quants.biasScale : b;
             rawOutput.push(sum + actualBias);
         }
 
@@ -394,8 +391,10 @@ async save(name = "model", useBinary = false) {
             const metadata = {
                 layers: this.layers,
                 details: this.details,
-                isQuantized: this._isQuantized,
-                quantizationParams: this.quantizationParams,
+                quantization: this.quantized ? {
+                    enabled: true,
+                    quants: this.quants
+                } : null,
                 ...(this.tags && { tags: this.tags })
             };
 
@@ -425,7 +424,7 @@ async save(name = "model", useBinary = false) {
             const totalSize = header.byteLength + 
                             metadataBytes.length +
                             metadataPadding +
-                            (this._isQuantized ? 
+                            (this.quantized ? 
                                 (totalWeights + totalBiases) : 
                                 (totalWeights + totalBiases) * 8);
 
@@ -449,7 +448,7 @@ async save(name = "model", useBinary = false) {
             // Write weights
             for (let i = 0; i < this.weights.length; i++) {
                 for (let j = 0; j < this.weights[i].length; j++) {
-                    if (this._isQuantized) {
+                    if (this.quantized) {
                         view.set(this.weights[i][j], offset);
                         offset += this.weights[i][j].length;
                     } else {
@@ -461,13 +460,13 @@ async save(name = "model", useBinary = false) {
             }
 
             // Ensure offset is 8-byte aligned before biases
-            if (!this._isQuantized && offset % 8 !== 0) {
+            if (!this.quantized && offset % 8 !== 0) {
                 offset += (8 - (offset % 8));
             }
 
             // Write biases
             for (let i = 0; i < this.biases.length; i++) {
-                if (this._isQuantized) {
+                if (this.quantized) {
                     view.set(this.biases[i], offset);
                     offset += this.biases[i].length;
                 } else {
@@ -490,19 +489,27 @@ async save(name = "model", useBinary = false) {
 
             return true;
         } else {
-            // JSON save implementation (unchanged)
+            // For standard JSON saving
             const metadata = {
                 layers: this.layers,
                 details: this.details,
-                isQuantized: this._isQuantized,
-                quantizationParams: this.quantizationParams,
-                weights: this._isQuantized ? 
-                    this.weights.map(layer => layer.map(neuron => Array.from(neuron))) :
-                    this.weights,
-                biases: this._isQuantized ? 
-                    this.biases.map(bias => Array.from(bias)) :
-                    this.biases
+                ...(this.tags && { tags: this.tags })
             };
+
+            // Add quantization data if model is quantized
+            if (this.quantized) {
+                metadata.quantization = {
+                    enabled: true,
+                    quants: this.quants,
+                    weights: this.weights.map(layer => 
+                        layer.map(neuron => Array.from(neuron))),
+                    biases: this.biases.map(bias => Array.from(bias))
+                };
+            } else {
+                // Add standard weights and biases if not quantized
+                metadata.weights = this.weights;
+                metadata.biases = this.biases;
+            }
 
             const fileBlob = new Blob([JSON.stringify(metadata)], { type: "application/json" });
             const downloadUrl = URL.createObjectURL(fileBlob);
@@ -551,8 +558,8 @@ async load(callback, useBinary = false) {
 
             let offset = metadataOffset + metadataLength + metadataPadding;
 
-            this._isQuantized = metadata.isQuantized;
-            this.quantizationParams = metadata.quantizationParams;
+            this.quantized = metadata.quantization?.enabled || false;
+            this.quants = metadata.quantization?.quants || null;
             this.layers = metadata.layers;
             this.details = metadata.details;
             if (metadata.tags) this.tags = metadata.tags;
@@ -562,7 +569,7 @@ async load(callback, useBinary = false) {
             metadata.layers.forEach((layer, i) => {
                 const layerWeights = [];
                 for (let j = 0; j < layer.outputSize; j++) {
-                    if (this._isQuantized) {
+                    if (this.quantized) {
                         const neuron = new Int8Array(arrayBuffer, offset, layer.inputSize);
                         layerWeights.push(new Int8Array(neuron));
                         offset += layer.inputSize;
@@ -578,7 +585,7 @@ async load(callback, useBinary = false) {
             // Load biases
             this.biases = [];
             metadata.layers.forEach(layer => {
-                if (this._isQuantized) {
+                if (this.quantized) {
                     const bias = new Int8Array(arrayBuffer, offset, layer.outputSize);
                     this.biases.push(new Int8Array(bias));
                     offset += layer.outputSize;
@@ -591,17 +598,17 @@ async load(callback, useBinary = false) {
         } else {
             const metadata = JSON.parse(new TextDecoder().decode(arrayBuffer));
             
-            this._isQuantized = metadata.isQuantized;
-            this.quantizationParams = metadata.quantizationParams;
+            this.quantized = metadata.quantization?.enabled || false;
+            this.quants = metadata.quantization?.quants || null;
             this.layers = metadata.layers;
             this.details = metadata.details;
             if (metadata.tags) this.tags = metadata.tags;
 
-            if (this._isQuantized) {
-                this.weights = metadata.weights.map(layer =>
+            if (this.quantized) {
+                this.weights = metadata.quantization.weights.map(layer =>
                     layer.map(neuron => new Int8Array(neuron))
                 );
-                this.biases = metadata.biases.map(bias =>
+                this.biases = metadata.quantization.biases.map(bias =>
                     new Int8Array(bias)
                 );
             } else {
@@ -924,8 +931,6 @@ async load(callback, useBinary = false) {
       return output;
     }
 
-
-    
     // ℹ️ Info: Updates model metadata (e.g., author, license, etc.)
     info(infoUpdates) {
       this.details.info = infoUpdates;
