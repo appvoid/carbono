@@ -1,3 +1,6 @@
+# this is kept as historical reference, won't be updated anymore
+# for current pytorch code (which uses python) please check the latest carbono notebook
+
 import math
 import json
 import time
