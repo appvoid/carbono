@@ -12,12 +12,12 @@ class carbono {
     this.debug = debug;
     // Set a private seed value using a clean, dedicated field
     this.#seed = seed;
-    this.layers = [];   // Holds layer definitions 📚
-    this.weights = [];  // Weights for each layer 🔢
-    this.biases = [];   // Biases for each layer ➕
-    this.details = {};  // Stores training details and summary 📝
-    this.quantized = false;
-    this.tags = null;   // Tag names for classification tasks
+    this.layers = [];       // Holds layer definitions 📚
+    this.weights = [];      // Weights for each layer 🔢
+    this.biases = [];       // Biases for each layer ➕
+    this.details = {};      // Stores training details and summary 📝
+    this.quantized = false; // If model was quantized after loading ✦
+    this.tags = null;       // Tag names for classification tasks 🏷
   }
 
   // ==========================
