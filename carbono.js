@@ -1,6 +1,6 @@
 /**
- * Beginner-friendly machine learning model class.
- * Designed to quickly teach the math behind neural networks.
+ * Class representing a neural network model.
+ * Designed to be beginner-friendly with helpful comments and fun emojis.
  */
 class carbono {
   /**
@@ -12,21 +12,18 @@ class carbono {
     this.debug = debug;
     // Set a private seed value using a clean, dedicated field
     this.#seed = seed;
-    this.layers = [];       // Holds layer definitions 📚
-    this.weights = [];      // Weights for each layer 🔢
-    this.biases = [];       // Biases for each layer ➕
-    this.details = {};      // Stores training details and summary 📝
-    this.quantized = false; // If model was quantized after loading ✦
-    this.tags = null;       // Tag names for classification tasks 🏷
+    this.layers = []; // Holds layer definitions 📚
+    this.weights = []; // Weights for each layer 🔢
+    this.biases = []; // Biases for each layer ➕
+    this.details = {}; // Stores training details and summary 📝
+    this.quantized = false;
+    this.tags = null; // Tag names for classification tasks
   }
-
   // ==========================
   // PRIVATE PROPERTIES & METHODS
   // ==========================
-
   // Private seed value for PRNG
   #seed;
-
   /**
    * A clean PRNG method using a mulberry32-like algorithm.
    * @returns {number} A pseudo-random number between 0 and 1.
@@ -39,7 +36,6 @@ class carbono {
     t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   }
-
   /**
    * Initialize a weight for a given layer based on activation.
    * @param {number} inputSize - Number of inputs.
@@ -60,7 +56,6 @@ class carbono {
         throw new Error(`Unknown activation: ${activation}`);
     }
   }
-
   /**
    * Calculate the global gradient norm from layer errors.
    * @param {Array} layerErrors - Errors per layer.
@@ -79,7 +74,6 @@ class carbono {
     }
     return Math.sqrt(sumSq);
   }
-
   /**
    * Clip value to avoid numerical issues.
    * @param {number} value - The value to clip.
@@ -90,7 +84,6 @@ class carbono {
   #clip(value, min = 1e-15, max = 1 - 1e-15) {
     return Math.max(Math.min(value, max), min);
   }
-
   /**
    * Activation functions and their derivatives.
    */
@@ -120,24 +113,19 @@ class carbono {
       deriv: null
     }
   };
-
   /**
    * Loss functions and their derivatives.
    */
   #lossFns = {
     mse: {
-      loss: (pred, act) =>
-        pred.reduce((sum, p, i) => sum + Math.pow(p - act[i], 2), 0),
-      deriv: (pred, act, actFn) =>
-        pred.map((p, i) => (p - act[i]) * (actFn === 'softmax' ? 1 : this.#getActDeriv(p, actFn)))
+      loss: (pred, act) => pred.reduce((sum, p, i) => sum + Math.pow(p - act[i], 2), 0),
+      deriv: (pred, act, actFn) => pred.map((p, i) => (p - act[i]) * (actFn === 'softmax' ? 1 : this.#getActDeriv(p, actFn)))
     },
     'cross-entropy': {
-      loss: (pred, act) =>
-        -act.reduce((sum, target, i) => sum + target * Math.log(this.#clip(pred[i])), 0),
+      loss: (pred, act) => -act.reduce((sum, target, i) => sum + target * Math.log(this.#clip(pred[i])), 0),
       deriv: (pred, act) => pred.map((p, i) => p - act[i])
     }
   };
-
   /**
    * Get activation function output.
    * @param {number|Array} x - Input value(s).
@@ -147,7 +135,6 @@ class carbono {
   #getAct(x, name) {
     return this.#actFns[name].fn(x);
   }
-
   /**
    * Get activation derivative for a given value.
    * @param {number} x - Input value.
@@ -157,7 +144,6 @@ class carbono {
   #getActDeriv(x, name) {
     return this.#actFns[name].deriv ? this.#actFns[name].deriv(x) : null;
   }
-
   /**
    * Create dropout mask for a given size and dropout rate.
    * @param {number} size - Number of neurons.
@@ -165,11 +151,8 @@ class carbono {
    * @returns {Array} Dropout mask.
    */
   #dropMask(size, rate) {
-    return Array(size)
-      .fill()
-      .map(() => (this.#rand() > rate ? 1 / (1 - rate) : 0));
+    return Array(size).fill().map(() => (this.#rand() > rate ? 1 / (1 - rate) : 0));
   }
-
   /**
    * Calculate regularization loss for all layers.
    * @returns {number} Regularization loss.
@@ -190,7 +173,6 @@ class carbono {
       return total + layerLoss;
     }, 0);
   }
-
   /**
    * Shuffle an array using the internal PRNG.
    * @param {Array} arr - Array to shuffle.
@@ -204,11 +186,9 @@ class carbono {
     }
     return a;
   }
-
   // ==========================
   // PUBLIC HELPER METHODS
   // ==========================
-
   /**
    * Normalize an array of numbers using min-max scaling.
    * 📊 Useful for data pre-processing!
@@ -222,7 +202,6 @@ class carbono {
     const dMax = Math.max(...data);
     return data.map(x => ((x - dMin) / (dMax - dMin)) * (max - min) + min);
   }
-
   /**
    * Split data into training and validation sets automatically.
    * 🤖 If more than 10 samples are provided, the data is shuffled and split.
@@ -233,21 +212,24 @@ class carbono {
   split(data, ratio = 0.2) {
     if (data.length <= 10) {
       if (this.debug) console.log("ℹ️ Less than or equal to 10 samples; no split performed.");
-      return { train: data, valid: [] };
+      return {
+        train: data,
+        valid: []
+      };
     }
     const shuffled = this.#shuffle(data);
     const validCount = Math.floor(shuffled.length * ratio);
     const valid = shuffled.slice(0, validCount);
     const train = shuffled.slice(validCount);
-    if (this.debug)
-      console.log(`🔀 Data split: ${train.length} train samples, ${valid.length} validation samples.`);
-    return { train, valid };
+    if (this.debug) console.log(`🔀 Data split: ${train.length} train samples, ${valid.length} validation samples.`);
+    return {
+      train,
+      valid
+    };
   }
-
   // ==========================
   // MODEL BUILDING METHODS
   // ==========================
-
   /**
    * Add a new layer to the network.
    * 🧱 Each layer is defined by input/output sizes and an activation.
@@ -258,23 +240,178 @@ class carbono {
    * @returns {carbono} The model instance.
    */
   layer(inSize, outSize, act = "tanh", opts = {}) {
-    const { dropoutRate = 0, l1 = 0, l2 = 0 } = opts;
+    const {
+      dropoutRate = 0, l1 = 0, l2 = 0
+    } = opts;
     // Ensure input size matches previous layer's output
     if (this.weights.length > 0) {
       const lastOut = this.layers[this.layers.length - 1].outSize;
-      if (inSize !== lastOut)
-        throw new Error("Layer input size must match previous layer output size.");
+      if (inSize !== lastOut) throw new Error("Layer input size must match previous layer output size.");
     }
-    this.layers.push({ inSize, outSize, act, dropoutRate, l1, l2 });
+    this.layers.push({
+      inSize,
+      outSize,
+      act,
+      dropoutRate,
+      l1,
+      l2
+    });
     // Create weights matrix and biases vector
-    const w = Array(outSize)
-      .fill()
-      .map(() => Array(inSize).fill().map(() => this.#initW(inSize, outSize, act)));
+    const w = Array(outSize).fill().map(() => Array(inSize).fill().map(() => this.#initW(inSize, outSize, act)));
     this.weights.push(w);
     this.biases.push(Array(outSize).fill(0.01));
     return this;
   }
-
+  /**
+   * Save specific layers to .uai files
+   * @param {string} name - Base filename
+   * @param {Array} layerIndices - Indices of layers to save
+   * @returns {Promise<boolean>} Whether saving was successful
+   */
+  async saveLayers(name = "layer", layerIndices = [-1]) {
+    layerIndices = layerIndices.map(idx => idx === -1 ? this.layers.length - 1 : idx);
+    try {
+      for (const idx of layerIndices) {
+        if (idx < 0 || idx >= this.layers.length) {
+          throw new Error(`Invalid layer index: ${idx}`);
+        }
+        const layerMeta = {
+          type: "layer",
+          index: idx,
+          layer: this.layers[idx],
+          quantized: this.quantized,
+          weights: this.weights[idx],
+          biases: this.biases[idx],
+          ...(this.quantized ? {
+            quants: this.quants
+          } : {})
+        };
+        const metaStr = JSON.stringify(layerMeta);
+        const metaBytes = new TextEncoder().encode(metaStr);
+        const pad = (8 - (metaBytes.length % 8)) % 8;
+        const totalW = this.weights[idx].reduce((sum, neuron) => sum + neuron.length, 0);
+        const totalB = this.biases[idx].length;
+        const header = new Uint32Array([metaBytes.length, pad, totalW, totalB]);
+        const totalSize = header.byteLength + metaBytes.length + pad + (this.quantized ? (totalW + totalB) : (totalW + totalB) * 8);
+        const buffer = new ArrayBuffer(totalSize);
+        const view = new Uint8Array(buffer);
+        let offset = 0;
+        view.set(new Uint8Array(header.buffer), offset);
+        offset += header.byteLength;
+        view.set(metaBytes, offset);
+        offset += metaBytes.length + pad;
+        // Save weights
+        if (this.quantized) {
+          for (const neuron of this.weights[idx]) {
+            view.set(neuron, offset);
+            offset += neuron.length;
+          }
+        } else {
+          const floatView = new Float64Array(buffer, offset);
+          let floatOffset = 0;
+          for (const neuron of this.weights[idx]) {
+            floatView.set(neuron, floatOffset);
+            floatOffset += neuron.length;
+          }
+          offset += totalW * 8;
+        }
+        // Save biases
+        if (this.quantized) {
+          view.set(this.biases[idx], offset);
+        } else {
+          const floatView = new Float64Array(buffer, offset);
+          floatView.set(this.biases[idx]);
+        }
+        const blob = new Blob([buffer], {
+          type: "application/octet-stream"
+        });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${name}_layer${idx}.uai`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }
+      if (this.debug) console.log("💾 Layers saved successfully");
+      return true;
+    } catch (err) {
+      console.error("Layer save failed:", err);
+      throw err;
+    }
+  }
+  /**
+   * Load a layer from .uai file
+   * @param {number} targetIndex - Index where to load the layer
+   * @returns {Promise<boolean>} Whether loading was successful
+   */
+  async loadLayer() {
+    try {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.uai';
+      const [file] = await new Promise(resolve => {
+        input.onchange = e => resolve(e.target.files);
+        document.body.appendChild(input);
+        input.click();
+        document.body.removeChild(input);
+      });
+      if (!file) throw new Error("No file selected");
+      const buf = await file.arrayBuffer();
+      const header = new Uint32Array(buf, 0, 4);
+      const [metaLen, pad, totalW, totalB] = header;
+      const metaOffset = header.byteLength;
+      const metaBytes = new Uint8Array(buf, metaOffset, metaLen);
+      const meta = JSON.parse(new TextDecoder().decode(metaBytes));
+      if (meta.type !== "layer") {
+        throw new Error("Invalid file type - expected layer file");
+      }
+      const targetIndex = meta.index;
+      if (targetIndex >= this.layers.length) {
+        throw new Error("Layer index out of bounds");
+      }
+      // Verify layer compatibility
+      if (meta.layer.inSize !== this.layers[targetIndex].inSize || meta.layer.outSize !== this.layers[targetIndex].outSize) {
+        throw new Error("Layer dimensions mismatch");
+      }
+      let offset = metaOffset + metaLen + pad;
+      // Load weights
+      if (meta.quantized) {
+        this.weights[targetIndex] = [];
+        for (let j = 0; j < meta.layer.outSize; j++) {
+          const neuron = new Int8Array(buf, offset, meta.layer.inSize);
+          this.weights[targetIndex].push(new Int8Array(neuron));
+          offset += meta.layer.inSize;
+        }
+      } else {
+        this.weights[targetIndex] = [];
+        for (let j = 0; j < meta.layer.outSize; j++) {
+          const neuron = new Float64Array(buf, offset, meta.layer.inSize);
+          this.weights[targetIndex].push(Array.from(neuron));
+          offset += meta.layer.inSize * 8;
+        }
+      }
+      // Load biases
+      if (meta.quantized) {
+        const bias = new Int8Array(buf, offset, meta.layer.outSize);
+        this.biases[targetIndex] = new Int8Array(bias);
+      } else {
+        const bias = new Float64Array(buf, offset, meta.layer.outSize);
+        this.biases[targetIndex] = Array.from(bias);
+      }
+      // Update layer properties
+      this.layers[targetIndex] = {
+        ...this.layers[targetIndex],
+        ...meta.layer
+      };
+      if (this.debug) console.log(`📂 Layer ${targetIndex} loaded successfully`);
+      return true;
+    } catch (err) {
+      console.error("Layer load failed:", err);
+      throw err;
+    }
+  }
   /**
    * Insert a new layer at a given index.
    * 🔀 Useful for modifying the architecture mid-stream.
@@ -283,20 +420,23 @@ class carbono {
    * @returns {carbono} The model instance.
    */
   insert(idx, act = "tanh") {
-    if (idx < 0 || idx > this.layers.length)
-      throw new Error("Invalid layer index");
+    if (idx < 0 || idx > this.layers.length) throw new Error("Invalid layer index");
     const inSize = idx === 0 ? this.layers[0].inSize : this.layers[idx - 1].outSize;
     const outSize = idx === this.layers.length ? this.layers[this.layers.length - 1].outSize : this.layers[idx].inSize;
-    const newLayer = { inSize, outSize, act, dropoutRate: 0, l1: 0, l2: 0 };
+    const newLayer = {
+      inSize,
+      outSize,
+      act,
+      dropoutRate: 0,
+      l1: 0,
+      l2: 0
+    };
     this.layers.splice(idx, 0, newLayer);
-    const w = Array(outSize)
-      .fill()
-      .map(() => Array(inSize).fill().map(() => this.#initW(inSize, outSize, act)));
+    const w = Array(outSize).fill().map(() => Array(inSize).fill().map(() => this.#initW(inSize, outSize, act)));
     this.weights.splice(idx, 0, w);
     this.biases.splice(idx, 0, Array(outSize).fill(0.01));
     return this;
   }
-
   /**
    * Replace an existing layer with a new one.
    * 🔄 Useful when you need to change dimensions or activation.
@@ -307,34 +447,31 @@ class carbono {
    * @returns {carbono} The model instance.
    */
   replace(idx, inSize, outSize, act = "tanh") {
-    if (idx < 0 || idx >= this.layers.length)
-      throw new Error("Invalid layer index");
-    const newLayer = { inSize, outSize, act, dropoutRate: 0, l1: 0, l2: 0 };
+    if (idx < 0 || idx >= this.layers.length) throw new Error("Invalid layer index");
+    const newLayer = {
+      inSize,
+      outSize,
+      act,
+      dropoutRate: 0,
+      l1: 0,
+      l2: 0
+    };
     this.layers[idx] = newLayer;
-    const w = Array(outSize)
-      .fill()
-      .map(() => Array(inSize).fill().map(() => this.#initW(inSize, outSize, act)));
+    const w = Array(outSize).fill().map(() => Array(inSize).fill().map(() => this.#initW(inSize, outSize, act)));
     this.weights[idx] = w;
     this.biases[idx] = Array(outSize).fill(0.01);
     // Adjust previous and next layers if necessary
     if (idx > 0) {
       this.layers[idx - 1].outSize = inSize;
-      this.weights[idx - 1] = Array(inSize)
-        .fill()
-        .map(() => Array(this.layers[idx - 1].inSize)
-          .fill().map(() => this.#initW(this.layers[idx - 1].inSize, inSize, this.layers[idx].act)));
+      this.weights[idx - 1] = Array(inSize).fill().map(() => Array(this.layers[idx - 1].inSize).fill().map(() => this.#initW(this.layers[idx - 1].inSize, inSize, this.layers[idx].act)));
       this.biases[idx - 1] = Array(inSize).fill(0.01);
     }
     if (idx < this.layers.length - 1) {
       this.layers[idx + 1].inSize = outSize;
-      this.weights[idx + 1] = Array(this.layers[idx + 1].outSize)
-        .fill()
-        .map(() => Array(outSize)
-          .fill().map(() => this.#initW(outSize, this.layers[idx + 1].outSize, this.layers[idx + 1].act)));
+      this.weights[idx + 1] = Array(this.layers[idx + 1].outSize).fill().map(() => Array(outSize).fill().map(() => this.#initW(outSize, this.layers[idx + 1].outSize, this.layers[idx + 1].act)));
     }
     return this;
   }
-
   /**
    * Remove a layer at a given index.
    * 🗑️ Use with caution!
@@ -342,8 +479,7 @@ class carbono {
    * @returns {carbono} The model instance.
    */
   drop(idx) {
-    if (idx < 0 || idx >= this.layers.length)
-      throw new Error("Invalid layer index");
+    if (idx < 0 || idx >= this.layers.length) throw new Error("Invalid layer index");
     this.layers.splice(idx, 1);
     this.weights.splice(idx, 1);
     this.biases.splice(idx, 1);
@@ -352,17 +488,13 @@ class carbono {
       const prevOut = idx > 0 ? this.layers[idx - 1].outSize : this.layers[0].inSize;
       const next = this.layers[idx];
       next.inSize = prevOut;
-      this.weights[idx] = Array(next.outSize)
-        .fill()
-        .map(() => Array(prevOut).fill().map(() => this.#initW(prevOut, next.outSize, next.act)));
+      this.weights[idx] = Array(next.outSize).fill().map(() => Array(prevOut).fill().map(() => this.#initW(prevOut, next.outSize, next.act)));
     }
     return this;
   }
-
   // ==========================
   // FORWARD & BACK PROP
   // ==========================
-
   /**
    * Forward propagate input through the network.
    * ⚡ Handles dropout and activation functions.
@@ -372,9 +504,9 @@ class carbono {
    */
   #forward(input, isTrain = true) {
     let curr = Array.from(input);
-    const ins = [curr];      // Store inputs for each layer
-    const raws = [];         // Raw outputs (before activation)
-    const masks = [];        // Dropout masks per layer
+    const ins = [curr]; // Store inputs for each layer
+    const raws = []; // Raw outputs (before activation)
+    const masks = []; // Dropout masks per layer
     for (let i = 0; i < this.weights.length; i++) {
       const raw = [];
       const w = this.weights[i];
@@ -400,17 +532,18 @@ class carbono {
       }
       raws.push(raw);
       // Activation step
-      curr = layer.act === 'softmax'
-        ? this.#getAct(raw.map(x => Number.isFinite(x) ? x : 0), 'softmax')
-        : raw.map(x => {
-            const actVal = this.#getAct(Number.isFinite(x) ? x : 0, layer.act);
-            return Number.isFinite(actVal) ? actVal : 0;
-          });
+      curr = layer.act === 'softmax' ? this.#getAct(raw.map(x => Number.isFinite(x) ? x : 0), 'softmax') : raw.map(x => {
+        const actVal = this.#getAct(Number.isFinite(x) ? x : 0, layer.act);
+        return Number.isFinite(actVal) ? actVal : 0;
+      });
       ins.push(curr);
     }
-    return { ins, raws, masks };
+    return {
+      ins,
+      raws,
+      masks
+    };
   }
-
   /**
    * Backward propagate errors and compute gradients.
    * 🔙 Uses the chain rule to calculate weight updates.
@@ -441,11 +574,9 @@ class carbono {
     }
     return errs;
   }
-
   // ==========================
   // WEIGHT UPDATE METHODS
   // ==========================
-
   /**
    * Update weights and biases for a given layer.
    * ✏️ Handles regularization and delegates to the optimizer.
@@ -460,14 +591,12 @@ class carbono {
     const layer = this.layers[idx];
     // Apply L1/L2 regularization if set
     if (layer.l1 > 0 || layer.l2 > 0) {
-      wGrads = wGrads.map((neuron, j) =>
-        neuron.map((grad, k) => {
-          let reg = 0;
-          if (layer.l1 > 0) reg += layer.l1 * Math.sign(this.weights[idx][j][k]);
-          if (layer.l2 > 0) reg += layer.l2 * this.weights[idx][j][k];
-          return grad + reg;
-        })
-      );
+      wGrads = wGrads.map((neuron, j) => neuron.map((grad, k) => {
+        let reg = 0;
+        if (layer.l1 > 0) reg += layer.l1 * Math.sign(this.weights[idx][j][k]);
+        if (layer.l2 > 0) reg += layer.l2 * this.weights[idx][j][k];
+        return grad + reg;
+      }));
     }
     if (optim === "adam") {
       this.#adam(idx, wGrads, bGrads, params);
@@ -475,7 +604,6 @@ class carbono {
       this.#sgd(idx, wGrads, bGrads, params.learningRate);
     }
   }
-
   /**
    * Initialize optimizer state for Adam if needed.
    */
@@ -487,7 +615,6 @@ class carbono {
       this.bias_v = this.biases.map(layer => layer.map(() => 0));
     }
   }
-
   /**
    * Adam optimizer update.
    * ⚙️ Adaptive Moment Estimation.
@@ -496,8 +623,13 @@ class carbono {
    * @param {Array} bGrads - Bias gradients.
    * @param {Object} params - Contains timestep (t) and learningRate.
    */
-  #adam(idx, wGrads, bGrads, { t, learningRate }) {
-    const beta1 = 0.9, beta2 = 0.999, epsilon = 1e-8;
+  #adam(idx, wGrads, bGrads, {
+    t,
+    learningRate
+  }) {
+    const beta1 = 0.9,
+      beta2 = 0.999,
+      epsilon = 1e-8;
     for (let j = 0; j < this.weights[idx].length; j++) {
       for (let k = 0; k < this.weights[idx][j].length; k++) {
         const g = wGrads[j][k];
@@ -515,7 +647,6 @@ class carbono {
       this.biases[idx][j] -= (learningRate * m_hat_bias) / (Math.sqrt(v_hat_bias) + epsilon);
     }
   }
-
   /**
    * SGD optimizer update.
    * 🚀 (alias: sgd) Standard gradient descent with momentum.
@@ -535,7 +666,6 @@ class carbono {
       this.biases[idx][j] += this.bias_velocity[idx][j];
     }
   }
-
   /**
    * Initialize momentum variables for SGD if needed.
    */
@@ -545,11 +675,9 @@ class carbono {
       this.bias_velocity = this.biases.map(layer => layer.map(() => 0));
     }
   }
-
   // ==========================
   // TRAIN & PREDICT METHODS
   // ==========================
-
   /**
    * Train the model on the provided dataset.
    * 🔥 If the dataset is a URL, it fetches the JSON data.
@@ -560,143 +688,172 @@ class carbono {
    * @returns {Object} Training summary.
    */
   async train(trainSet, opts = {}) {
-  // If trainSet is a URL, fetch data from network
-  if (typeof trainSet === "string" && trainSet.startsWith("http")) {
-    try {
-      const res = await fetch(trainSet);
-      if (!res.ok) throw new Error(`Failed to fetch data from ${trainSet}`);
-      trainSet = await res.json();
-    } catch (err) {
-      console.error("Error fetching training data:", err);
-      throw err;
+    // If trainSet is a URL, fetch data from network
+    if (typeof trainSet === "string" && trainSet.startsWith("http")) {
+      try {
+        const res = await fetch(trainSet);
+        if (!res.ok) throw new Error(`Failed to fetch data from ${trainSet}`);
+        trainSet = await res.json();
+      } catch (err) {
+        console.error("Error fetching training data:", err);
+        throw err;
+      }
     }
-  }
-  
-  // Auto-preprocess tags if needed
-  if (typeof trainSet[0].output === "string" ||
-      (Array.isArray(trainSet[0].output) && typeof trainSet[0].output[0] === "string")) {
-    trainSet = this.#prepTags(trainSet);
-  }
-  
-  // Automatically split dataset if more than 10 samples and no testSet provided
-  let testSet = opts.testSet;
-  if (!testSet && trainSet.length > 10) {
-    const splitData = this.split(trainSet, 0.2);
-    trainSet = splitData.train;
-    testSet = splitData.valid;
-  }
-  
-  // Extract training options with defaults
-  const {
-    epochs = 10,
-    learningRate = 0.212,
-    optim = "sgd",
-    loss = "mse",
-    decaySteps = 0,
-    decayRate = 0.5,
-    callback = null,
-    every = 10,
-    printEvery = 1,  // Default to printing every epoch
-    earlyStop = 1e-10
-  } = opts;
-
-  let curLR = learningRate;
-  const startTime = Date.now();
-  let t = 0;
-  
-  if (optim === "adam") {
-    this.#initOpt();
-  } else {
-    this.#initMom();
-  }
-  
-  let lastLoss = 0, testLoss = null, maxGrad = 0;
-  
-  // Training loop over epochs
-  for (let epoch = 0; epoch < epochs; epoch++) {
-    if (decaySteps > 0 && epoch > 0 && epoch % decaySteps === 0) {
-      curLR *= decayRate;
+    if (this.debug) {
+      const frozenLayers = this.layers.map((layer, idx) => ({
+        idx,
+        frozen: layer.frozen
+      })).filter(l => l.frozen);
+      if (frozenLayers.length > 0) {
+        console.log("🧊 Training with frozen layers:", frozenLayers.map(l => l.idx).join(", "));
+      }
     }
-    
-    let epochError = 0;
-    maxGrad = 0;
-    
-    for (const sample of trainSet) {
-      t++;
-      // Forward pass
-      const { ins, raws, masks } = this.#forward(sample.input, true);
-      
-      // Backward pass to compute gradients
-      const errors = this.#back(ins, raws, sample.output, loss, masks);
-      const gradNorm = this.#gradNorm(errors, ins);
-      maxGrad = Math.max(maxGrad, gradNorm);
-      
-      // Update each layer's weights and biases
-      for (let i = 0; i < this.weights.length; i++) {
-        const wGrads = this.weights[i].map((_, j) =>
-          this.weights[i][j].map((_, k) => {
+    // Auto-preprocess tags if needed
+    if (typeof trainSet[0].output === "string" || (Array.isArray(trainSet[0].output) && typeof trainSet[0].output[0] === "string")) {
+      trainSet = this.#prepTags(trainSet);
+    }
+    // Automatically split dataset if more than 10 samples and no testSet provided
+    let testSet = opts.testSet;
+    if (!testSet && trainSet.length > 10) {
+      const splitData = this.split(trainSet, 0.2);
+      trainSet = splitData.train;
+      testSet = splitData.valid;
+    }
+    // Extract training options with defaults
+    const {
+      epochs = 10,
+        learningRate = 0.212,
+        optim = "sgd",
+        loss = "mse",
+        decaySteps = 0,
+        decayRate = 0.5,
+        callback = null,
+        every = 10,
+        printEvery = 1, // Default to printing every epoch
+        earlyStop = 1e-10
+    } = opts;
+    let curLR = learningRate;
+    const startTime = Date.now();
+    let t = 0;
+    if (optim === "adam") {
+      this.#initOpt();
+    } else {
+      this.#initMom();
+    }
+    let lastLoss = 0,
+      testLoss = null,
+      maxGrad = 0;
+    // Training loop over epochs
+    for (let epoch = 0; epoch < epochs; epoch++) {
+      if (decaySteps > 0 && epoch > 0 && epoch % decaySteps === 0) {
+        curLR *= decayRate;
+      }
+      let epochError = 0;
+      maxGrad = 0;
+      for (const sample of trainSet) {
+        t++;
+        // Forward pass
+        const {
+          ins,
+          raws,
+          masks
+        } = this.#forward(sample.input, true);
+        // Backward pass to compute gradients
+        const errors = this.#back(ins, raws, sample.output, loss, masks);
+        const gradNorm = this.#gradNorm(errors, ins);
+        maxGrad = Math.max(maxGrad, gradNorm);
+        // Update each layer's weights and biases
+        for (let i = 0; i < this.weights.length; i++) {
+          const wGrads = this.weights[i].map((_, j) => this.weights[i][j].map((_, k) => {
             let grad = errors[i][j] * ins[i][k];
             if (masks[i]) grad *= masks[i][k];
             return grad;
-          })
-        );
-        const bGrads = errors[i];
-        this.#updW(i, wGrads, bGrads, optim, { t, learningRate: curLR });
+          }));
+          const bGrads = errors[i];
+          this.#updW(i, wGrads, bGrads, optim, {
+            t,
+            learningRate: curLR
+          });
+        }
+        // Compute loss (plus regularization)
+        epochError += this.#lossFns[loss].loss(ins[ins.length - 1], sample.output) + this.#regLoss();
       }
-      
-      // Compute loss (plus regularization)
-      epochError += this.#lossFns[loss].loss(ins[ins.length - 1], sample.output) + this.#regLoss();
-    }
-    
-    lastLoss = epochError / trainSet.length;
-    if (testSet && testSet.length > 0) {
-      testLoss = this.#evalTest(testSet, loss);
-    }
-    
-    // Print training progress at specified intervals
-    if (epoch % printEvery === 0 || epoch === epochs - 1) {
-      console.log('\n=== Training Progress ===');
-      console.log(`Epoch: ${epoch+1}/${epochs}`);
-      console.log(`Training Loss: ${lastLoss.toFixed(6)}`);
-      if (testLoss !== null) {
-        console.log(`Validation Loss: ${testLoss.toFixed(6)}`);
+      lastLoss = epochError / trainSet.length;
+      if (testSet && testSet.length > 0) {
+        testLoss = this.#evalTest(testSet, loss);
       }
-      console.log(`Learning Rate: ${curLR.toFixed(6)}`);
-      console.log(`Max Gradient: ${maxGrad.toFixed(6)}`);
-      
-      // Additional warnings for gradient issues
-      if (maxGrad > 49) console.log('⚠️ Warning: Gradient explosion detected!');
-      if (maxGrad < 0.01) console.log('⚠️ Warning: Gradient vanishing detected!');
-      
-      console.log('========================\n');
+      // Print training progress at specified intervals
+      if (epoch % printEvery === 0 || epoch === epochs - 1) {
+        console.log('\n=== Training Progress ===');
+        console.log(`Epoch: ${epoch+1}/${epochs}`);
+        console.log(`Training Loss: ${lastLoss.toFixed(6)}`);
+        if (testLoss !== null) {
+          console.log(`Validation Loss: ${testLoss.toFixed(6)}`);
+        }
+        console.log(`Learning Rate: ${curLR.toFixed(6)}`);
+        console.log(`Max Gradient: ${maxGrad.toFixed(6)}`);
+        // Additional warnings for gradient issues
+        if (maxGrad > 49) console.log('⚠️ Warning: Gradient explosion detected!');
+        if (maxGrad < 0.01) console.log('⚠️ Warning: Gradient vanishing detected!');
+        console.log('========================\n');
+      }
+      if (callback) await callback(epoch + 1, lastLoss, testLoss);
+      await new Promise(res => setTimeout(res, 0));
+      // Early stopping check
+      if (lastLoss < earlyStop) {
+        console.log(`🎯 Early stopping achieved at epoch ${epoch + 1} with loss: ${lastLoss.toFixed(6)}`);
+        break;
+      }
     }
-    
-    if (callback) await callback(epoch + 1, lastLoss, testLoss);
-    await new Promise(res => setTimeout(res, 0));
-    
-    // Early stopping check
-    if (lastLoss < earlyStop) {
-      console.log(`🎯 Early stopping achieved at epoch ${epoch + 1} with loss: ${lastLoss.toFixed(6)}`);
-      break;
+    // Clean up optimizer state
+    if (optim === 'adam') {
+      delete this.weight_m;
+      delete this.weight_v;
+      delete this.bias_m;
+      delete this.bias_v;
+    } else {
+      delete this.weight_velocity;
+      delete this.bias_velocity;
     }
+    const summary = this.#trainSum(startTime, Date.now(), {
+      epochs,
+      learningRate,
+      lastLoss,
+      testLoss
+    });
+    this.details = summary;
+    return summary;
   }
-  
-  // Clean up optimizer state
-  if (optim === 'adam') {
-    delete this.weight_m;
-    delete this.weight_v;
-    delete this.bias_m;
-    delete this.bias_v;
-  } else {
-    delete this.weight_velocity;
-    delete this.bias_velocity;
+  /**
+   * Finetune specific layers while freezing others.
+   * @param {Array} dataset - Training dataset
+   * @param {Array} layers - Indices of layers to train (-1 for last layer only)
+   * @param {Object} opts - Training options
+   * @returns {Object} Training summary
+   */
+  async finetune(dataset, layers = [-1], opts = {}) {
+    // Convert -1 to last layer index
+    layers = layers.map(idx => idx === -1 ? this.layers.length - 1 : idx);
+    // Validate layer indices
+    layers.forEach(idx => {
+      if (idx < 0 || idx >= this.layers.length) {
+        throw new Error(`Invalid layer index: ${idx}`);
+      }
+    });
+    // Store original frozen states
+    const originalFrozenStates = this.layers.map(layer => layer.frozen || false);
+    // Freeze all layers except those being finetuned
+    this.layers.forEach((layer, idx) => {
+      layer.frozen = !layers.includes(idx);
+    });
+    // Train with frozen layers
+    const summary = await this.train(dataset, opts);
+    // Restore original frozen states
+    this.layers.forEach((layer, idx) => {
+      layer.frozen = originalFrozenStates[idx];
+    });
+    return summary;
   }
-  
-  const summary = this.#trainSum(startTime, Date.now(), { epochs, learningRate, lastLoss, testLoss });
-  this.details = summary;
-  return summary;
-}
-
   /**
    * Evaluate the test set performance.
    * @param {Array} testSet - Test dataset.
@@ -709,7 +866,6 @@ class carbono {
       return sum + this.#lossFns[loss].loss(pred, sample.output);
     }, 0) / testSet.length;
   }
-
   /**
    * Generate a training summary.
    * 📝 Includes total parameters, training time, epochs, etc.
@@ -718,7 +874,12 @@ class carbono {
    * @param {Object} opts - Training options summary.
    * @returns {Object} Training summary.
    */
-  #trainSum(start, end, { epochs, learningRate, lastLoss, testLoss }) {
+  #trainSum(start, end, {
+    epochs,
+    learningRate,
+    lastLoss,
+    testLoss
+  }) {
     const totalParams = this.weights.reduce((sum, layer, i) => sum + layer.flat().length + this.biases[i].length, 0);
     return {
       parameters: totalParams,
@@ -731,7 +892,6 @@ class carbono {
       }
     };
   }
-
   /**
    * Preprocess training set tags for classification tasks.
    * Converts string outputs into one-hot arrays.
@@ -753,7 +913,6 @@ class carbono {
       output: unique.map(tag => (Array.isArray(item.output) ? item.output : [item.output]).includes(tag) ? 1 : 0)
     }));
   }
-
   /**
    * Predict output for a given input.
    * 🤖 Returns probabilities for each tag if available.
@@ -762,16 +921,18 @@ class carbono {
    * @returns {Array} Prediction output.
    */
   predict(input, asTags = true) {
-    const { ins } = this.#forward(input, false);
+    const {
+      ins
+    } = this.#forward(input, false);
     const out = ins[ins.length - 1];
     if (this.tags && this.layers[this.layers.length - 1].act === "softmax" && asTags) {
-      return out
-        .map((prob, i) => ({ tag: this.tags[i], probability: prob }))
-        .sort((a, b) => b.probability - a.probability);
+      return out.map((prob, i) => ({
+        tag: this.tags[i],
+        probability: prob
+      })).sort((a, b) => b.probability - a.probability);
     }
     return out;
   }
-
   /**
    * Attach additional info to the training details.
    * ℹ️ Can be used to store custom metadata.
@@ -780,11 +941,9 @@ class carbono {
   info(info) {
     this.details.info = info;
   }
-
   // ==========================
   // SAVE & LOAD METHODS
   // ==========================
-
   /**
    * Save the model to file.
    * 💾 Supports "localStorage", "uai" (binary), or "json" formats.
@@ -802,7 +961,9 @@ class carbono {
           weights: this.weights,
           biases: this.biases,
           tags: this.tags || null,
-          ...(this.quantized ? { quants: this.quants } : {})
+          ...(this.quantized ? {
+            quants: this.quants
+          } : {})
         };
         localStorage.setItem(name, JSON.stringify(meta));
         if (this.debug) console.log("💾 Model saved to localStorage under key:", name);
@@ -812,13 +973,17 @@ class carbono {
         const meta = {
           layers: this.layers,
           details: this.details,
-          quantization: this.quantized ? { enabled: true, quants: this.quants } : null,
+          quantization: this.quantized ? {
+            enabled: true,
+            quants: this.quants
+          } : null,
           tags: this.tags || null
         };
         const metaStr = JSON.stringify(meta);
         const metaBytes = new TextEncoder().encode(metaStr);
         const pad = (8 - (metaBytes.length % 8)) % 8;
-        let totalW = 0, totalB = 0;
+        let totalW = 0,
+          totalB = 0;
         this.weights.forEach((layer, i) => {
           layer.forEach(neuron => totalW += neuron.length);
           totalB += this.biases[i].length;
@@ -856,7 +1021,9 @@ class carbono {
             offset += this.biases[i].length * 8;
           }
         }
-        const blob = new Blob([buffer], { type: "application/octet-stream" });
+        const blob = new Blob([buffer], {
+          type: "application/octet-stream"
+        });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
@@ -881,9 +1048,14 @@ class carbono {
               weights: this.weights.map(layer => layer.map(neuron => Array.from(neuron))),
               biases: this.biases.map(b => Array.from(b))
             }
-          } : { weights: this.weights, biases: this.biases })
+          } : {
+            weights: this.weights,
+            biases: this.biases
+          })
         };
-        const blob = new Blob([JSON.stringify(meta, null, 2)], { type: "application/json" });
+        const blob = new Blob([JSON.stringify(meta, null, 2)], {
+          type: "application/json"
+        });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
@@ -900,7 +1072,6 @@ class carbono {
       throw err;
     }
   }
-
   /**
    * Load a model from file.
    * 📂 Supports both JSON and binary ("uai") formats.
@@ -984,7 +1155,6 @@ class carbono {
       throw err;
     }
   }
-
   /**
    * Reset all weights and biases to initial random values.
    * 🔄 Useful for retraining from scratch.
@@ -992,10 +1162,12 @@ class carbono {
    */
   reset() {
     for (let i = 0; i < this.layers.length; i++) {
-      const { inSize, outSize, act } = this.layers[i];
-      this.weights[i] = Array(outSize)
-        .fill()
-        .map(() => Array(inSize).fill().map(() => this.#initW(inSize, outSize, act)));
+      const {
+        inSize,
+        outSize,
+        act
+      } = this.layers[i];
+      this.weights[i] = Array(outSize).fill().map(() => Array(inSize).fill().map(() => this.#initW(inSize, outSize, act)));
       this.biases[i] = Array(outSize).fill(0.01);
     }
     if (this.debug) console.log("🔄 Model weights and biases have been reset.");
