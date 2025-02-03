@@ -1,5 +1,7 @@
 ### carbono
 
+(not in active development yet, experimental)
+
 a micro-library for feedforward neural networks that works everywhere:
 
 > latest changes
