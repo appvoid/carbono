@@ -729,7 +729,7 @@ class carbono {
         decayRate = 0.5,
         callback = null,
         every = 10,
-        printEvery = 1, // Default to printing every epoch
+        printEveryEpochs = 1, // Default to printing every epoch
         earlyStop = 1e-10
     } = opts;
     let curLR = learningRate;
@@ -783,7 +783,7 @@ class carbono {
         testLoss = this.#evalTest(testSet, loss);
       }
       // Print training progress at specified intervals
-      if (epoch % printEvery === 0 || epoch === epochs - 1) {
+      if (epoch % printEveryEpochs === 0 || epoch === epochs - 1) {
         console.log('\n=== Training Progress ===');
         console.log(`Epoch: ${epoch+1}/${epochs}`);
         console.log(`Training Loss: ${lastLoss.toFixed(6)}`);
